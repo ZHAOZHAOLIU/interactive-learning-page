@@ -55,7 +55,6 @@
 
 ```bash
 git clone https://github.com/caroliu1024/interactive-learning-page.git
-cd interactive-learning-page
 mkdir -p ~/.claude/skills
 cp -r interactive-learning-page ~/.claude/skills/
 ```
@@ -66,6 +65,8 @@ cp -r interactive-learning-page ~/.claude/skills/
 mkdir -p .claude/skills
 cp -r /path/to/interactive-learning-page .claude/skills/
 ```
+
+**没装 git？直接下载 ZIP。** `SKILL.md` 就放在仓库根目录，所以解压出来的文件夹本身就是 skill，不用再往里翻一层。GitHub 解压出的文件夹叫 `interactive-learning-page-main`，拷进 `skills/` 或上传之前把它改名成 `interactive-learning-page`，让文件夹名和 skill 名对上。
 
 重启 Claude Code（或开一个新会话）。验证是否加载成功：
 
@@ -211,15 +212,16 @@ cp -r /path/to/interactive-learning-page .claude/skills/
 ## 目录结构
 
 ```
-interactive-learning-page/
-├── README.md                         英文（原版）
-├── README.zh-CN.md                   简体中文（本文件）
-├── LICENSE                           MIT
-├── assets/                           README 用到的截图
-├── examples/                         三个完整的生成结果
-└── interactive-learning-page/        ← 把这个文件夹拷进 ~/.claude/skills/
-    └── SKILL.md
+interactive-learning-page/           ← 这个文件夹本身就是 skill，整个拷进 ~/.claude/skills/
+├── SKILL.md                         skill 本体 —— Claude 只需要这一个文件
+├── README.md                        英文（原版）
+├── README.zh-CN.md                  简体中文（本文件）
+├── LICENSE                          MIT
+├── assets/                          README 用到的截图
+└── examples/                        三个完整的生成结果
 ```
+
+`SKILL.md` 放在根目录是刻意的：不管你是 clone 还是下 ZIP，拿到的文件夹都能直接丢进 `skills/`（或直接上传），不用再拆一层嵌套目录。
 
 * * *
 

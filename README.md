@@ -57,7 +57,6 @@ Light and dark are both first-class; the shots above show each. The visual direc
 
 ```bash
 git clone https://github.com/caroliu1024/interactive-learning-page.git
-cd interactive-learning-page
 mkdir -p ~/.claude/skills
 cp -r interactive-learning-page ~/.claude/skills/
 ```
@@ -68,6 +67,8 @@ cp -r interactive-learning-page ~/.claude/skills/
 mkdir -p .claude/skills
 cp -r /path/to/interactive-learning-page .claude/skills/
 ```
+
+**No git? Download the ZIP.** `SKILL.md` sits at the repository root, so the extracted folder *is* the skill — nothing to dig out. GitHub names the extracted folder `interactive-learning-page-main`; rename it to `interactive-learning-page` before copying it into `skills/` or uploading it, so the folder name matches the skill name.
 
 Restart Claude Code (or start a new session). Verify it loaded:
 
@@ -216,15 +217,16 @@ Download any of them and open it in a browser — they're fully functional, incl
 ## Project Structure
 
 ```
-interactive-learning-page/
-├── README.md                         English (this file)
-├── README.zh-CN.md                   简体中文
-├── LICENSE                           MIT
-├── assets/                           Screenshots used in this README
-├── examples/                         Three complete generated pages
-└── interactive-learning-page/        ← copy this folder into ~/.claude/skills/
-    └── SKILL.md
+interactive-learning-page/           ← this folder IS the skill; copy it into ~/.claude/skills/
+├── SKILL.md                         The skill itself — the only file Claude needs
+├── README.md                        English (this file)
+├── README.zh-CN.md                  简体中文
+├── LICENSE                          MIT
+├── assets/                          Screenshots used in this README
+└── examples/                        Three complete generated pages
 ```
+
+`SKILL.md` is at the root on purpose: whether you clone the repo or download the ZIP, the folder you end up with can be dropped straight into `skills/` (or uploaded as-is) with no nested directory to unwrap.
 
 * * *
 
