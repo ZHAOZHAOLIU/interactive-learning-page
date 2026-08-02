@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness 设计：让 Agent 跑完长任务 · 交互学习页</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b23; --panel2:#1d232d; --line:#2a323e;
+  --text:#e6e9ef; --dim:#8b93a1;
+  --accent:#e0913a; --accent-soft:rgba(224,145,58,.14);
+  --good:#4fb286; --bad:#d9544d; --warn:#d8b24c;
+  --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+  --body:"PingFang SC","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit}
+.num{font-family:var(--mono)}
+
+/* layout */
+#app{display:flex;min-height:100vh}
+#sidebar{width:266px;flex:0 0 266px;background:var(--panel);border-right:1px solid var(--line);padding:18px 0 40px;position:sticky;top:0;height:100vh;overflow-y:auto}
+#main{flex:1;min-width:0;padding:34px 44px 90px;max-width:900px}
+.brand{padding:0 18px 14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand h1{font-size:15px;margin:0 0 4px;font-weight:600}
+.brand p{margin:0;font-size:12px;color:var(--dim)}
+.progwrap{padding:12px 18px 16px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.progbar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.progbar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.progmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:6px}
+.navsec{font-size:11px;color:var(--dim);padding:12px 18px 6px;letter-spacing:.02em}
+.navitem{display:flex;gap:9px;align-items:flex-start;padding:7px 18px;cursor:pointer;font-size:13px;border-left:2px solid transparent}
+.navitem:hover{background:var(--panel2)}
+.navitem.active{background:var(--accent-soft);border-left-color:var(--accent)}
+.navitem .ico{flex:0 0 15px;font-size:11px;line-height:1.9;text-align:center}
+.navitem .nvt{flex:1;min-width:0}
+.navitem .pend{font-size:10px;color:var(--warn);display:block;line-height:1.4}
+.st-none{color:var(--dim)} .st-review{color:var(--bad)} .st-master{color:var(--good)}
+#storenote{font-size:10.5px;color:var(--warn);padding:8px 18px 0;line-height:1.5}
+
+/* generic */
+.eyebrow{font-family:var(--mono);font-size:11px;color:var(--accent);text-transform:uppercase}
+h2.vt{font-size:25px;margin:6px 0 6px;line-height:1.35;font-weight:600}
+.sub{color:var(--dim);margin:0 0 26px;font-size:14px}
+h3{font-size:15px;margin:30px 0 10px;font-weight:600}
+p{margin:0 0 13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin:0 0 16px}
+.box-analogy{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 7px 7px 0;padding:13px 16px;margin:16px 0}
+.box-miss{border:1px solid var(--line);border-radius:8px;padding:13px 16px;margin:16px 0;background:var(--panel)}
+.box-miss .mt{color:var(--bad);font-size:12.5px;margin-bottom:6px}
+.box-miss .ma{color:var(--good);font-size:12.5px}
+.box-key{background:var(--panel2);border-radius:8px;padding:14px 18px;margin:18px 0}
+.box-key ul{margin:8px 0 0;padding-left:19px}
+.box-key li{margin-bottom:5px}
+.lbl{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:5px}
+.tblwrap{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:440px}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+th{background:var(--panel2);font-weight:600;color:var(--accent)}
+code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);padding:1px 5px;border-radius:3px}
+.badge{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:11px;background:var(--panel2);color:var(--dim);margin-right:5px}
+
+/* diagram */
+.dg{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:18px;margin:18px 0;overflow-x:auto}
+.dg-cap{font-size:11.5px;color:var(--dim);margin-top:10px}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:9px}
+.bx{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:9px 12px;font-size:12.5px;min-width:96px;text-align:center}
+.bx.on{border-color:var(--accent);color:var(--accent)}
+.bx.gd{border-color:var(--good);color:var(--good)}
+.bx.bd{border-color:var(--bad);color:var(--bad)}
+.bx small{display:block;color:var(--dim);font-size:10.5px}
+.ar{color:var(--accent);font-family:var(--mono);font-size:15px}
+
+/* home */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px;margin-top:16px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px;cursor:pointer;transition:border-color .15s}
+.mcard:hover{border-color:var(--accent)}
+.mcard .mn{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.mcard h4{margin:5px 0 6px;font-size:14px;font-weight:600}
+.mcard p{font-size:12px;color:var(--dim);margin:0 0 9px;line-height:1.55}
+.mcard .ft{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+
+/* quiz */
+.q{margin:16px 0}
+.q .qt{font-weight:600;margin-bottom:9px}
+.opt{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:9px 13px;margin-bottom:7px;cursor:pointer;font-size:13.5px;display:block;width:100%;text-align:left}
+.opt:hover:not(.done){border-color:var(--accent)}
+.opt.ok{border-color:var(--good);background:rgba(79,178,134,.11)}
+.opt.no{border-color:var(--bad);background:rgba(217,84,77,.11)}
+.opt.done{cursor:default}
+.expl{font-size:12.5px;color:var(--dim);border-left:2px solid var(--line);padding-left:11px;margin-top:8px}
+.expl b.ok{color:var(--good)} .expl b.no{color:var(--bad)}
+
+/* feynman / forms */
+textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:7px;color:var(--text);padding:11px;font-family:inherit;font-size:13.5px;min-height:112px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--accent)}
+details{margin-top:10px;background:var(--panel2);border-radius:7px;padding:10px 13px}
+summary{cursor:pointer;font-size:13px;color:var(--accent)}
+details ul{margin:9px 0 0;padding-left:19px;font-size:13px}
+.rate{display:flex;gap:7px;align-items:center;margin-top:11px;font-size:12.5px;color:var(--dim)}
+.rate button{width:29px;height:29px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-family:var(--mono);font-size:12px}
+.rate button.sel{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.btn{background:var(--accent);color:#141414;border:none;border-radius:7px;padding:9px 17px;font-size:13.5px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-weight:400}
+.btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
+
+/* exam result */
+.score{font-family:var(--mono);font-size:44px;color:var(--accent);line-height:1.1}
+.weak{border:1px solid var(--line);border-radius:8px;padding:12px 15px;margin-top:12px;background:var(--panel)}
+.weak .wl{cursor:pointer;color:var(--accent);text-decoration:underline;font-size:13.5px}
+.hr{height:1px;background:var(--line);margin:34px 0}
+
+@media(max-width:820px){
+  #app{flex-direction:column}
+  #sidebar{width:100%;flex:none;height:auto;position:relative;max-height:auto}
+  #main{padding:24px 18px 70px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar">
+    <div class="brand">
+      <h1>Harness 设计实战</h1>
+      <p>让 Agent 跑完 4 小时长任务</p>
+    </div>
+    <div class="progwrap">
+      <div class="progbar"><i id="pbar"></i></div>
+      <div class="progmeta"><span id="ptext">掌握度 0%</span><span id="pcnt" class="num">0/15</span></div>
+      <div id="storenote"></div>
+    </div>
+    <div id="nav"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ---------------- persistence: window.storage -> localStorage -> memory ---------------- */
+var KEY='harness-learn-v1', mem={}, backend='memory', state={answers:{},exam:{},fey:{}};
+function detect(){
+  if(typeof window.storage!=='undefined'&&window.storage){backend='window.storage';return;}
+  try{window.localStorage.setItem('__t','1');window.localStorage.removeItem('__t');backend='localStorage';}
+  catch(e){backend='memory';}
+}
+function rawGet(){
+  if(backend==='window.storage'){try{return Promise.resolve(window.storage.getItem(KEY));}catch(e){return Promise.resolve(null);}}
+  if(backend==='localStorage'){try{return Promise.resolve(window.localStorage.getItem(KEY));}catch(e){return Promise.resolve(null);}}
+  return Promise.resolve(mem[KEY]||null);
+}
+function rawSet(v){
+  if(backend==='window.storage'){try{window.storage.setItem(KEY,v);}catch(e){mem[KEY]=v;}return;}
+  if(backend==='localStorage'){try{window.localStorage.setItem(KEY,v);return;}catch(e){}}
+  mem[KEY]=v;
+}
+function save(){rawSet(JSON.stringify(state));}
+function load(){return rawGet().then(function(v){
+  if(v){try{var p=JSON.parse(v);state.answers=p.answers||{};state.exam=p.exam||{};state.fey=p.fey||{};}catch(e){}}
+});}
+
+/* ---------------- data: modules ---------------- */
+var MODULES=[
+{id:'m1',num:'01',eyebrow:'起点',title:'Harness 是什么，为什么模型变强了还需要它',
+ sub:'把「模型能力」和「系统能力」分开看',prereqs:[],
+ intuition:[
+  '给一个强模型一句提示词，让它自己写完一个完整应用——这就是「裸调用」。它能跑，但跑到某个长度就开始塌方：功能只做了壳子、后半段草草收尾、自己还觉得做得挺好。问题不在于模型不聪明，而在于没人给它划定「什么算做完」，也没人在中途告诉它「这块是坏的」。',
+  'Harness（脚手架 / 外壳）就是围绕模型搭的那一圈工程：上下文怎么管、任务怎么切、谁来验收、失败了怎么回到正轨。文章的核心论点是——harness 的作用不是弥补模型的智商，而是把模型单次调用拿不到的东西补上：持久的状态、外部的判断、可重复的验收标准。',
+  '一个反直觉的结论贯穿全文：模型每升一级，harness 里都会有一部分组件从「必需」变成「纯开销」，但同时又会有新的组件变成必需。所以 harness 不会随模型变强而消失，它只是往上挪。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">裸调用<small>一句 prompt → 一个应用</small></div><span class="ar">→</span><div class="bx">20 分钟 / $9<small>壳子能看，核心是坏的</small></div></div><div style="height:14px"></div><div class="row"><div class="bx on">Harness<small>Planner + Generator + Evaluator</small></div><span class="ar">→</span><div class="bx gd">6 小时 / $200<small>功能完整、可玩</small></div></div>',
+ diagcap:'同一个提示词，加不加 harness 的两条路径（RetroForge 实测数据，详见模块 11）。',
+ analogy:'类比你熟悉的 CI/CD：一个工程师本地写完就 push，和一套「需求评审 → 提交 → 流水线跑测试 → code review 卡门槛」的流程，写代码的是同一个人，产出质量差一个量级。Harness 之于模型，就是 CI 之于工程师——它不让人变聪明，它让人没法蒙混过关。',
+ miss:{t:'以为 harness 是「模型不够强时的临时补丁」，等模型强了就能全删掉。',a:'文章明确反过来说：可交互的组合空间不会缩小，它会移动。旧组件（如 sprint 拆分）确实会退役，但新的组件（如让 Agent 正确构建 AI 功能的提示词）会顶上，让系统达到裸模型达不到的高度。'},
+ table:{h:['维度','裸调用单 Agent','完整 Harness'],r:[
+  ['耗时','20 分钟','6 小时（20×）'],
+  ['成本','$9','$200（22×）'],
+  ['产出','核心逻辑断裂','功能完整可用'],
+  ['适用场景','常规任务','触及模型能力边界的任务']]},
+ keys:['Harness = 围绕模型的工程外壳：上下文管理、任务分解、外部验收。',
+       '它补的不是智商，是单次调用天然缺失的持久状态与外部判断。',
+       '成本是真实的：20× 时间、22× 花费，只在任务超出裸模型可靠区间时才划算。',
+       '模型升级会淘汰部分组件，但不会淘汰 harness 本身。'],
+ quiz:[
+  {q:'按文章的观点，为什么模型能力提升后 harness 不会消失？',o:['因为模型永远存在幻觉，需要人工兜底','因为有价值的组合空间会移动而非缩小：旧组件退役、新组件顶上','因为 harness 主要用于降低推理成本','因为多 Agent 架构的并行度总是优于单 Agent'],a:1,e:'文末的中心论点：the space moves, it doesn\'t shrink。AI 工程师的工作就是不断找下一个有效组合。'},
+  {q:'什么情况下 harness 的额外开销最难被证明是合理的？',o:['触及模型能力边界的复杂任务','需要主观审美判断的设计任务','裸模型已经能可靠完成的常规任务','需要跨多个模块保持一致性的大型代码库'],a:2,e:'文章在简化 harness 一节的原话意思：评估器的成本只有在任务超出单 Agent 可靠区间时才划算，常规任务上它就是纯开销。'}]
+},
+{id:'m2',num:'02',eyebrow:'失败模式 I',title:'上下文衰减与「上下文焦虑」',
+ sub:'长任务塌方的第一个物理原因',prereqs:['m1'],
+ intuition:[
+  '模型在长任务上失去连贯性，最直接的原因是上下文窗口在被填满。早期的决策、约定的接口、已经踩过的坑，随着对话变长逐渐被挤到注意力的边缘，模型开始重复犯已经解决过的错误，或者忘掉自己十步前定下的数据结构。',
+  '更有意思的是文章命名的一个现象：context anxiety（上下文焦虑）。当模型感知到自己接近上下文上限时，它会开始提前收尾——把没做完的功能写成 stub、给出一段「后续可以继续完善」的总结，然后停下。它不是做不动了，是它自己判断「快没空间了，赶紧交差」。',
+  '这个行为随模型版本有明显变化：Claude Sonnet 4.5 上必须靠上下文重置才能压住；到 Opus 4.5，这个行为基本消失了。这是全文「组件会过期」论点最干净的一个例证。'
+ ],
+ diagram:'<div class="row"><div class="bx">上下文占用 30%<small>连贯、按计划推进</small></div><span class="ar">→</span><div class="bx">70%<small>早期约定开始丢失</small></div><span class="ar">→</span><div class="bx bd">90%<small>提前收尾 · stub 化</small></div></div>',
+ diagcap:'上下文焦虑：产出质量的下滑不是线性的，末段会突然坍缩成「总结式交付」。',
+ analogy:'很像 Redis 接近 maxmemory 时的表现：不是到达阈值那一刻才出问题，而是逼近时淘汰策略开始激进地驱逐 key，命中率提前劣化。模型的注意力预算也一样，「快满了」这件事本身就在改变行为。',
+ miss:{t:'以为上下文焦虑就是「上下文塞满了、放不下了」的溢出错误。',a:'它是行为层面的自我调节，发生在真正塞满之前——模型主动选择草草收尾。所以单纯扩大窗口不一定能解决，需要改变模型对「剩余预算」的感知或直接换掉这个状态。'},
+ keys:['长任务失效有两层：客观的信息丢失 + 主观的提前收尾。',
+       'Context anxiety 是接近上限时的行为退化，不是溢出报错。',
+       'Sonnet 4.5 需要上下文重置来压制，Opus 4.5 基本自愈——典型的「假设会过期」。'],
+ quiz:[
+  {q:'「上下文焦虑」最准确的描述是：',o:['上下文超限后 API 抛错中断','模型感知到接近上限，主动提前收尾、把功能写成 stub','模型在长上下文中检索早期信息失败','多 Agent 之间上下文不同步导致的冲突'],a:1,e:'关键在「提前」和「主动」：这是行为退化，发生在真正撑满之前。'},
+  {q:'关于该现象在不同模型上的表现，文章的结论是：',o:['所有模型表现一致，属于架构固有缺陷','Sonnet 4.5 需要上下文重置来压制，Opus 4.5 已基本消除','Opus 4.5 上更严重，因为它规划得更长','只在超过 100 万 token 的上下文中出现'],a:1,e:'这是「harness 组件会因模型升级而失效」的直接证据。'}]
+},
+{id:'m3',num:'03',eyebrow:'失败模式 I · 解法',title:'Compaction 与 Context Reset 的取舍',
+ sub:'两种上下文管理策略，代价完全不同',prereqs:['m2'],
+ intuition:[
+  '压缩（compaction）的做法是：把前面的对话原地总结成一段摘要，替换掉原始消息，继续在同一个会话里推进。好处是连续性最好——语气、约定、隐含上下文都还在。坏处是模型仍然知道「我已经聊了很久了」，上下文焦虑并不会因为压缩而消失。',
+  '重置（context reset）的做法更激进：直接清空窗口，从零开始。焦虑随之归零，但代价是所有隐性状态都没了——必须靠结构化的交接产物（handoff artifact）把「当前进度、已完成项、下一步、关键约定」显式写下来，否则重置后的 Agent 会重做已经做完的事。',
+  '真正要记住的是代价清单：重置引入编排复杂度、额外的 token 开销、以及延迟。它不是免费的清爽，是拿工程复杂度换连贯性。'
+ ],
+ diagram:'<div class="col"><div class="row"><div class="bx on">Compaction</div><span class="ar">→</span><div class="bx">摘要替换旧消息<small>同一会话继续</small></div><span class="ar">→</span><div class="bx bd">焦虑仍在</div></div><div class="row"><div class="bx on">Context Reset</div><span class="ar">→</span><div class="bx">写交接产物</div><span class="ar">→</span><div class="bx">清空窗口</div><span class="ar">→</span><div class="bx gd">焦虑归零<small>+复杂度/延迟</small></div></div></div>',
+ diagcap:'两条路径的分水岭在于：状态是留在上下文里，还是被外化成文件。',
+ analogy:'压缩像给一个长事务做 checkpoint 但连接不断；重置像主动断开重连，然后从持久化的 WAL 恢复状态。重连能甩掉一切累积的会话脏状态，但你必须真的把状态写进 WAL——没写下来的东西就是永久丢失。',
+ miss:{t:'以为重置比压缩「更先进」，应当默认选重置。',a:'文章列的是权衡不是排序：重置带来编排复杂度、token 开销和延迟。而且当模型本身不再有上下文焦虑时（Opus 4.5），重置这个组件的价值就大幅缩水了。'},
+ table:{h:['','Compaction 压缩','Context Reset 重置'],r:[
+  ['做法','原地总结早期对话','清空整个上下文窗口'],
+  ['连续性','保留','丢失，需交接产物补'],
+  ['上下文焦虑','仍然存在','消除'],
+  ['代价','摘要可能丢细节','编排复杂度、token 开销、延迟']]},
+ keys:['压缩保连续性但保不住焦虑；重置消焦虑但要靠交接产物续命。',
+       '重置的三项真实代价：编排复杂度、token 开销、延迟。',
+       '结构化交接产物是重置能成立的前提，不是可选项。'],
+ quiz:[
+  {q:'Context reset 相对 compaction 的核心代价是什么？',o:['摘要过程中丢失细节','需要结构化交接产物，并引入编排复杂度、token 开销和延迟','无法在多 Agent 系统中使用','会导致模型输出风格突变'],a:1,e:'丢细节是压缩的问题；重置的代价在工程侧。'},
+  {q:'为什么 compaction 无法解决上下文焦虑？',o:['因为摘要本身占用太多 token','因为模型仍处于同一会话，仍感知到自己已经运行很久','因为摘要模型的质量不够高','因为压缩会破坏工具调用记录'],a:1,e:'焦虑来自模型对「已消耗预算」的感知，原地压缩不改变这个感知。'}]
+},
+{id:'m4',num:'04',eyebrow:'失败模式 II',title:'自评偏差与生成/评估分离',
+ sub:'整套架构里最关键的一刀',prereqs:['m1'],
+ intuition:[
+  '第二个失败模式和上下文无关：Agent 会自信地夸奖自己的产出，几乎不管实际质量如何。在有二值验证的场景（测试挂没挂、编译过没过）这个问题还能被外部信号纠正；一旦进入设计这类没有硬判据的主观任务，自评就彻底失效——它会给自己打高分然后停止迭代。',
+  '解法不是「让生成器更自我批判」，而是把评估者拆成一个独立的 Agent。文章给了一个非常实用的经验判断：把一个独立的评估器调教得挑剔，比把生成器调教得自我怀疑要容易得多（more tractable）。这是工程可行性上的判断，不是哲学偏好。',
+  '拆开之后还有一个副产品：生成器拿到的不再是自己的空泛感受，而是外部给的、具体的迭代目标——「这个按钮点了没反应」「配色对比度不足」。有了具体靶子，迭代才有方向。',
+  '这套结构的灵感来自 GAN：生成器和判别器对抗式地互相推动。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">单 Agent 自评<small>「我觉得完成得很好」</small></div><span class="ar">→</span><div class="bx bd">停止迭代</div></div><div style="height:14px"></div><div class="row"><div class="bx on">Generator</div><span class="ar">→</span><div class="bx">产出</div><span class="ar">→</span><div class="bx on">Evaluator<small>独立 · 挑剔</small></div><span class="ar">→</span><div class="bx gd">具体批评</div></div><div class="row" style="margin-top:8px"><span class="ar" style="margin-left:6px">↑___________________ 反馈回灌 ___________________|</span></div>',
+ diagcap:'GAN 式对抗结构：关键不是「有评估」，而是评估者不共享生成者的上下文与立场。',
+ analogy:'就是「作者不能 approve 自己的 PR」这条规矩，只不过是形式化到系统里。你熟悉的 code review 里，reviewer 有价值恰恰因为他没参与写、不心疼那段代码；让作者自审 checklist 从来都不等价。',
+ miss:{t:'以为在提示词里加一句「请严格自我批评」就能等效替代独立评估器。',a:'文章的判断是：调教独立评估器比让生成器自我批判「更可行」。自评偏差是系统性的，同一次调用里同时承担辩护和攻击两种角色，本身就是冲突的。'},
+ keys:['自评偏差在主观任务上最致命，因为没有二值信号能纠偏。',
+       '解法是角色分离，不是提示词加压。',
+       '外部评估的真正产物是「可执行的具体迭代目标」，不只是分数。',
+       '架构灵感来自 GAN 的生成器/判别器对抗。'],
+ quiz:[
+  {q:'为什么自评偏差在设计类任务上尤其严重？',o:['设计任务的上下文更长','设计任务缺乏二值验证信号来纠偏','设计任务的输出 token 更多','设计任务无法使用工具调用'],a:1,e:'测试通过/编译成功这类硬信号能压住自评，主观任务上没有这种信号。'},
+  {q:'文章为什么倾向于「独立评估器」而非「让生成器更自我批判」？',o:['因为独立评估器成本更低','因为把独立评估器调教得挑剔在工程上更可行（tractable）','因为生成器不支持长上下文','因为评估器可以复用生成器的缓存'],a:1,e:'原文措辞是 more tractable，是工程可行性判断。'},
+  {q:'生成/评估分离带来的直接好处是：',o:['降低总 token 消耗','生成器获得来自外部的、具体的迭代目标','消除上下文焦虑','让任务可以并行执行'],a:1,e:'具体靶子 = 可迭代。只给分数不给批评，回路依然是死的。'}]
+},
+{id:'m5',num:'05',eyebrow:'前端实验',title:'把主观质量变成可打分的四个维度',
+ sub:'Design / Originality / Craft / Functionality',prereqs:['m4'],
+ intuition:[
+  '要让评估器工作，先得回答一个更难的问题：「设计得好」到底怎么打分。文章的做法是把它拆成四个可分别陈述、可分别举证的维度。',
+  '设计质量（Design Quality）问的是：它是一个整体，还是一堆零件的堆砌？看颜色、字体、布局是否共同构成统一的气质与身份。原创性（Originality）问的是：这里有没有真正的创作决策，还是模板默认值？这一维度专门用来惩罚所谓「AI slop」——那种一眼就知道是模型生成的通用套路。',
+  '工艺（Craft）是纯技术执行：字号层级、间距节奏、色彩和谐、对比度是否达标——这是能力底线检查。功能性（Functionality）则完全不看美学，只看能不能用、任务路径是否清晰。',
+  '最值得抄走的是权重策略：他们刻意给设计质量和原创性加重，因为那正是模型的弱项；工艺和功能性本来就做得不错，不需要额外加压。评分标准应该压在弱项上，而不是雨露均沾。'
+ ],
+ diagram:'<div class="row"><div class="bx on">Design Quality<small>整体感 / 气质统一</small></div><div class="bx on">Originality<small>反 AI slop</small></div><div class="bx">Craft<small>层级 / 间距 / 对比度</small></div><div class="bx">Functionality<small>能不能用</small></div></div><div class="row" style="margin-top:10px"><span class="badge">加重</span><span style="font-size:12.5px;color:var(--dim)">← 模型弱项</span><span class="badge" style="margin-left:24px">常规权重</span><span style="font-size:12.5px;color:var(--dim)">← 模型已具备</span></div>',
+ diagcap:'四维评分卡与权重分配：权重是针对模型能力画像调的，不是对半分。',
+ analogy:'跟你给服务定 SLI 一样：不是把所有指标都设成同等重要的告警，而是挑真正会先崩的那两个（比如 p99 延迟和错误率）压紧阈值，其余的只做基线监控。评分标准就是模型的 SLO 定义。',
+ miss:{t:'以为四个维度应该均衡赋权才「公平」。',a:'目标不是公平评价模型，是把模型往弱项方向推。加重设计与原创性正是因为这是它的短板；对已经达标的维度加压只会浪费迭代预算。'},
+ table:{h:['维度','考察什么','典型失败'],r:[
+  ['Design Quality','是否构成统一整体','各部分风格互不相干'],
+  ['Originality','有无刻意的创作决策','模板默认值 / AI slop'],
+  ['Craft','排版、间距、色彩、对比度','层级混乱、对比度不足'],
+  ['Functionality','脱离美学的可用性','看着好看但走不通流程']]},
+ keys:['主观质量必须先被拆成可分别举证的维度，才谈得上被评估。',
+       '原创性维度的核心职能是惩罚模板化的「AI slop」。',
+       '权重按模型能力画像分配：压弱项，不压已达标项。',
+       '评分标准本身就会影响输出——见模块 07。'],
+ quiz:[
+  {q:'四个维度中，专门用来对抗「模板默认值 / AI slop」的是：',o:['Design Quality','Originality','Craft','Functionality'],a:1,e:'原创性考察的是有没有 deliberate creative choices。'},
+  {q:'为什么设计质量与原创性被加重赋权？',o:['因为它们更容易量化','因为它们是模型的弱项，需要靠评分把模型往这个方向推','因为用户最常投诉这两项','因为它们与功能性冲突，需要平衡'],a:1,e:'craft 和 functionality 模型本来就做得自然，不需要额外加压。'}]
+},
+{id:'m6',num:'06',eyebrow:'前端实验',title:'迭代回路的具体搭法',
+ sub:'Agent SDK + Playwright MCP + 少样本校准',prereqs:['m5'],
+ intuition:[
+  '实现层面用的是 Claude Agent SDK，加上 Playwright MCP 让评估器能真正操作活的页面。生成器从用户提示词产出 HTML/CSS/JS；评估器则导航页面、截图、按四个维度打分，并给出详细批评。',
+  '注意评估器的「看」是真的看：它导航实时页面、截图，而不是读源码猜渲染效果。这一点是整个回路可信度的基础——评审的是成品而不是意图。',
+  '回路规模：每次生成跑 5–15 轮迭代，一次完整运行最长可达 4 小时。每轮评估之后，生成器要做一个战略决策——是在当前方向上精修（refine），还是干脆掉头换方向（pivot）。这个「要不要掉头」的自主权，正是后面出现创造性跳跃的前提。',
+  '还有一个容易被忽略但极其关键的工程细节：用带详细分数拆解的少样本示例来校准评估器。没有锚点，评估器的标准会在几十轮里慢慢漂移，分数就不再可比了。'
+ ],
+ diagram:'<div class="row"><div class="bx on">Generator<small>HTML/CSS/JS</small></div><span class="ar">→</span><div class="bx">Playwright<small>导航 · 截图</small></div><span class="ar">→</span><div class="bx on">Evaluator<small>四维打分 + 批评</small></div></div><div class="row" style="margin-top:8px"><div class="bx gd">pivot 或 refine<small>生成器自主决策</small></div><span class="ar">→</span><div class="bx">下一轮（共 5–15 轮 / ≤4h）</div></div>',
+ diagcap:'评估器操作的是渲染后的真实页面，不是源码——这决定了反馈的可信度。',
+ analogy:'和 E2E 测试对单测的关系一样：读源码判断 UI 好不好，相当于用单测断言用户体验。Playwright 这一层等价于把「真实浏览器里点一遍」纳入判据。少样本校准则像给评审卡打「标准答案样本」，防止评委随时间放水或收紧。',
+ miss:{t:'以为多跑几轮迭代自然会更好，所以轮数越多越好。',a:'见模块 07：迭代总体上升但会进入平台期，且存在非线性波动——后期版本有时反而不如中期。轮数不是单调收益。'},
+ keys:['Playwright MCP 让评估基于渲染实况而非源码推测。',
+       '5–15 轮 / 单次最长 4 小时是文中给出的实际规模。',
+       '生成器每轮要显式决定 pivot 还是 refine。',
+       '少样本 + 分数拆解用于对齐评估器、抑制标准漂移。'],
+ quiz:[
+  {q:'Playwright MCP 在前端实验中的作用是：',o:['加速 HTML 生成','让评估器导航实时页面并截图，基于渲染实况打分','为生成器提供设计模板','并行运行多个生成器'],a:1,e:'评审成品而非意图，是反馈可信的前提。'},
+  {q:'用带分数拆解的少样本示例校准评估器，主要为了解决什么问题？',o:['降低评估成本','防止评估标准在多轮迭代中漂移，保证分数可比','让评估器输出更短','绕开上下文窗口限制'],a:1,e:'原文：reduced drift，保证评估器对齐。'}]
+},
+{id:'m7',num:'07',eyebrow:'前端实验',title:'实验发现与荷兰博物馆案例',
+ sub:'评分标准本身就是一种引导',prereqs:['m6'],
+ intuition:[
+  '第一个发现关于措辞：像「museum quality designs」这样的字眼会把输出推向某种特定的视觉收敛。也就是说，标准里的形容词在任何反馈发生之前，就已经塑造了输出的性格。写评分卡等于在写风格提示词，这件事必须被自觉地意识到。',
+  '第二个发现关于轨迹：迭代总体上升，然后进入平台期；过程中有非线性波动，后期的版本有时反而不如中期讨喜；同时实现复杂度会一轮轮往上堆。',
+  '第三个发现最有说服力：仅仅第一轮的产出就明显好于「无提示词基线」。这说明四维标准本身就在把模型推离通用默认值，价值不全来自反馈回路。',
+  '最后是那个荷兰艺术博物馆网站的案例。第 9 轮是一个干净的深色主题落地页——完全在预期之内。第 10 轮突然掉头，做成了 3D 空间体验：用 CSS perspective 铺出棋盘地面，作品自由摆放，导航变成穿过一道道门。这就是 GAN 式架构能产生的、不在任何人预期内的创造性跳跃。'
+ ],
+ diagram:'<div class="row"><div class="bx">无提示基线<small>通用默认值</small></div><span class="ar">→</span><div class="bx on">第 1 轮<small>已明显更好</small></div><span class="ar">→</span><div class="bx">第 9 轮<small>深色落地页 · 预期内</small></div><span class="ar">→</span><div class="bx gd">第 10 轮<small>3D 空间 · pivot</small></div></div>',
+ diagcap:'注意第一个箭头：还没有任何反馈，仅标准本身就带来了提升。',
+ analogy:'类似给检索系统换排序特征：你以为自己只是在「评价」结果，实际上一旦这个指标进了优化回路，它就在决定系统长成什么样。Goodhart 的老问题——评分标准从来不是中立的观测者。',
+ miss:{t:'把评分标准当作中立的度量工具，以为它只负责测量、不影响产出。',a:'实验显示标准的措辞在第一轮就改变了输出方向，甚至优于无提示基线。标准既是尺子也是舵。'},
+ keys:['标准的措辞会在反馈之前就塑造输出性格（"museum quality" 效应）。',
+       '迭代曲线：上升 → 平台期，且非单调，后期不必然优于中期。',
+       '第 1 轮就优于无提示基线：价值一部分来自标准本身。',
+       '第 10 轮的 3D 空间 pivot 是对抗式架构产生意外创造力的实证。'],
+ quiz:[
+  {q:'「第一轮产出就明显优于无提示基线」这一发现说明了什么？',o:['反馈回路没有价值','评分标准本身就在把模型推离通用默认值','生成器已经过拟合','Playwright 的截图提升了质量'],a:1,e:'说明价值不全来自迭代，标准的引导作用独立存在。'},
+  {q:'关于迭代轨迹，以下哪项符合文中观察？',o:['质量随轮数严格单调递增','会进入平台期，且存在非线性波动，后期有时不如中期','前三轮之后不再有变化','实现复杂度随轮数下降'],a:1,e:'同时实现复杂度是逐轮上升的。'},
+  {q:'荷兰博物馆案例中第 10 轮做了什么？',o:['修复了第 9 轮的对比度问题','从深色落地页掉头，改为 CSS perspective 构建的 3D 空间导航体验','把页面拆成多页应用','回退到第 8 轮的版本'],a:1,e:'棋盘地面、作品自由摆放、穿门导航——一次 pivot 而非 refine。'}]
+},
+{id:'m8',num:'08',eyebrow:'全栈系统',title:'三 Agent 架构之一：Planner',
+ sub:'从一两句话到完整产品规格',prereqs:['m4'],
+ intuition:[
+  '进入全栈编码之后，架构扩成三个 Agent。第一个是 Planner：输入是 1–4 句话的简单提示，输出是一份完整的产品规格。',
+  '它的设计哲学有两条很反常规。第一，在范围上要有野心（ambitious on scope）——不是保守地缩小需求，而是主动把产品做厚。第二，聚焦产品语境与高层技术设计，而刻意不写细粒度的实现细节。',
+  '第二条的理由很硬：规格里的错误会级联进下游实现。你在规格阶段写死一个错的实现细节，生成器会忠实地把它实现出来，然后所有后续工作都建立在这个错误之上。留白反而更安全——把实现决策留给真正在写代码、能看到真实约束的那个 Agent。',
+  '另有两个具体设定：Planner 被明确要求识别「哪里可以织入 AI 功能」，并且它可以使用 Anthropic 的前端设计 skill。'
+ ],
+ diagram:'<div class="row"><div class="bx">1–4 句提示</div><span class="ar">→</span><div class="bx on">Planner<small>+ 前端设计 skill</small></div><span class="ar">→</span><div class="bx gd">完整产品规格<small>范围大 · 高层设计 · 标注 AI 功能点</small></div></div>',
+ diagcap:'规格层只定「做什么/大致怎么架构」，不定「这个函数怎么写」。',
+ analogy:'和写 RFC / 设计文档的分寸感一样：好的设计文档定接口契约和边界，不定循环里的变量名。你在文档里越权规定实现，评审通过后它就变成了没人敢改的错误约束——级联错误就是这么来的。',
+ miss:{t:'以为规格写得越细，下游 Agent 就越不会跑偏。',a:'恰恰相反：细粒度实现细节写在规格里，错误会级联到全部下游实现。Planner 要在范围上有野心，在实现细节上克制。'},
+ keys:['输入 1–4 句 → 输出完整产品规格。',
+       '范围上要野心大，实现细节上要克制——防止规格错误级联。',
+       '被显式要求识别可织入 AI 功能的位置。',
+       '可调用 Anthropic 的前端设计 skill。'],
+ quiz:[
+  {q:'Planner 为什么刻意不写细粒度实现细节？',o:['为了节省 token','因为规格中的错误会级联进下游的全部实现','因为生成器无法读懂细节','因为细节属于评估器的职责'],a:1,e:'原文 rationale：prevents cascading spec errors。'},
+  {q:'Planner 在范围（scope）上的指导原则是：',o:['保守收敛，先做最小可用版本','有野心，把产品做厚','严格等同于用户原话的字面范围','由评估器决定范围'],a:1,e:'ambitious on scope，同时要主动标出 AI 功能机会点。'}]
+},
+{id:'m9',num:'09',eyebrow:'全栈系统',title:'三 Agent 架构之二：Generator 与 Sprint 契约',
+ sub:'按功能冲刺推进，靠文件通信',prereqs:['m8'],
+ intuition:[
+  'Generator 负责实现。在早期版本的 harness 里，它以 feature-at-a-time 的冲刺方式工作：一次只吃一个功能，冲刺结束时先自评，然后交给 QA。技术栈是 React、Vite、FastAPI、SQLite（后来换成 PostgreSQL），版本控制用 Git。',
+  '真正的机制核心是 sprint contract（冲刺契约）：在写任何代码之前，Generator 和 Evaluator 要先就「这轮交付什么、怎么验证算成功」达成一致。定义「done」的时刻被前置到了动手之前。',
+  '同样值得注意的是 Agent 之间的通信方式——基于文件：一方写文件，另一方读取并回应，来回迭代直到达成一致。没有复杂的消息总线，就是可读可审计的文件。目的是既忠于规格，又不至于过度规定。'
+ ],
+ diagram:'<div class="row"><div class="bx on">Generator</div><span class="ar">⇄</span><div class="bx" style="border-color:var(--warn);color:var(--warn)">Sprint Contract<small>写在文件里 · 先谈后写</small></div><span class="ar">⇄</span><div class="bx on">Evaluator</div></div><div class="row" style="margin-top:10px"><div class="bx">实现功能</div><span class="ar">→</span><div class="bx">自评</div><span class="ar">→</span><div class="bx">交 QA</div><span class="ar">→</span><div class="bx">Git 提交</div></div>',
+ diagcap:'契约先于代码：验收标准在动手前就被冻结，而不是交付后再讨论。',
+ analogy:'这就是把「验收标准写进 ticket、并且和 QA 先对齐」这条工程纪律硬编码进系统。文件通信则像团队用共享文档协作而不是口头同步——留痕、可回溯、任何一方随时能重新读一遍原文。',
+ miss:{t:'以为自评环节既然存在，评估器就是可选的双保险。',a:'自评在这里只是提交前的初筛，模块 04 已经说明自评存在系统性偏差。硬门槛始终由独立评估器把守。'},
+ keys:['早期 harness 中 Generator 以「一次一个功能」的 sprint 推进。',
+       'Sprint contract 在写码前冻结交付内容与验收方式。',
+       'Agent 间用文件通信：可读、可审计、可反复对齐。',
+       '技术栈 React / Vite / FastAPI / SQLite→PostgreSQL，Git 管版本。'],
+ quiz:[
+  {q:'Sprint contract 的关键特征是：',o:['冲刺结束后由评估器补写验收报告','在写任何代码之前先就交付内容和验证方式达成一致','由 Planner 单方面下发','只约束前端部分'],a:1,e:'pre-sprint negotiation：先谈 done 的定义，再动手。'},
+  {q:'两个 Agent 之间采用文件通信的目的是：',o:['绕过上下文长度限制','在忠于规格的同时避免过度规定，且交互可读可迭代','降低 API 调用次数','支持并行执行多个冲刺'],a:1,e:'原文：ensured fidelity to spec without over-specification。'}]
+},
+{id:'m10',num:'10',eyebrow:'全栈系统',title:'三 Agent 架构之三：Evaluator 与真实 Bug',
+ sub:'硬阈值 + 实测，而不是读代码',prereqs:['m9'],
+ intuition:[
+  'Evaluator 用 Playwright MCP 去真实地使用这个应用：点击、导航、测试 UI 功能、打 API 端点、检查数据库状态。评分维度从前端实验迁移过来并做了适配——产品深度、功能性、视觉设计、代码质量。',
+  '门槛是硬的：所有维度都要过阈值，任何一项不达标就触发详细反馈、打回重做。这里没有「综合分够了就放行」的加权妥协。',
+  '最有说服力的是它抓到的三类真实缺陷。矩形填充工具只在起止两点放了图块、中间整片没填，需要修正 `fillRectangle` 在 mouseUp 时的触发逻辑；删除键要求 `selection` 和 `selectedEntityId` 同时被设置才生效，正确逻辑应该是「或」；FastAPI 的路由顺序问题让 `/frames/reorder` 被匹配成了整型 `frame_id`，返回 422。',
+  '这三个 bug 有个共同点：它们全都是「代码看起来完全正常、只有真的点一下才会暴露」的类型。这就是为什么评估必须发生在运行中的应用上。第三个冲刺的契约包含 27 条验收标准，可见颗粒度。'
+ ],
+ diagram:'<div class="row"><div class="bx on">Evaluator</div><span class="ar">→</span><div class="col"><div class="bx">点击 / 导航 UI</div><div class="bx">调用 API 端点</div><div class="bx">检查数据库状态</div></div><span class="ar">→</span><div class="col"><div class="bx gd">全部过阈值 → 通过</div><div class="bx bd">任一不过 → 详细反馈</div></div></div>',
+ diagcap:'四个维度都是硬门槛，不做加权平均妥协。',
+ analogy:'`/frames/reorder` 被路由成 `frame_id` 那个 bug，任何写过 Flask/FastAPI 的人都熟——静态路径必须注册在动态参数路径之前。静态分析和读 diff 都抓不到它，只有真发一个请求才会看到 422。评估器的价值就在这条边界上。',
+ miss:{t:'以为评估器主要在做代码审查。',a:'它主要在做真实交互测试。文中列举的三个缺陷都是代码层面读不出来、必须运行才暴露的行为缺陷。代码质量只是四个维度之一。'},
+ table:{h:['缺陷','表现','根因'],r:[
+  ['矩形填充','只在起止点放了图块','fillRectangle 未在 mouseUp 正确触发整区域填充'],
+  ['删除键失效','需两个状态同时满足','条件用了 AND，应为 OR'],
+  ['接口 422','/frames/reorder 报错','路由顺序：被匹配为整型 frame_id']]},
+ keys:['Evaluator 通过 Playwright 真实操作应用，覆盖 UI、API 和数据库状态。',
+       '四维硬阈值，任一不达标即打回并给详细反馈。',
+       '典型缺陷都是「读代码看不出、跑一下才暴露」的行为型 bug。',
+       'Sprint 3 的契约含 27 条验收标准——契约是很细的。'],
+ quiz:[
+  {q:'Evaluator 的通过机制是：',o:['四个维度加权求和超过总分线即通过','每个维度都必须过硬阈值，任一不达标即触发详细反馈','由 Generator 自评结果决定','只要功能性达标即可'],a:1,e:'hard thresholds on all criteria。'},
+  {q:'`/frames/reorder` 返回 422 的根因是：',o:['请求体校验规则写错','路由注册顺序问题，reorder 被匹配为整型 frame_id 路径','数据库迁移未执行','前端发送了错误的 HTTP 方法'],a:1,e:'典型的 FastAPI 路由顺序坑，只有实际调用才暴露。'}]
+},
+{id:'m11',num:'11',eyebrow:'实测结果',title:'RetroForge：裸调用 vs 完整 Harness',
+ sub:'20 倍时间、22 倍成本换来了什么',prereqs:['m10'],
+ intuition:[
+  '提示词是一句话：做一个 2D 复古游戏制作器，包含关卡编辑器、精灵编辑器、实体行为和可试玩模式。',
+  '单 Agent 版本：20 分钟、9 美元。结果是流程僵硬，UI 不引导用户按正确顺序操作；布局用固定高度面板浪费空间；最致命的是核心玩法是坏的——实体能显示出来，但输入处理不工作，实体定义和运行时之间的接线没接完。看起来像个产品，实际不能玩。',
+  '完整 harness 版本：6 小时、200 美元。视觉身份统一且完成度高；具备精灵动画系统、行为模板、音效与音乐；内置 AI 辅助的精灵生成器和关卡设计器；支持导出游戏并生成分享链接；集成的 Claude 功能显著加快创作流程；游戏真的能玩（物理仍有边缘 case）。',
+  '把这组数字记牢：20 分钟/$9 对 6 小时/$200，约 20× 时间、22× 成本。这是判断「该不该上 harness」时唯一诚实的参照系。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">Solo<small>20min · $9</small></div><span class="ar">vs</span><div class="bx gd">Harness<small>6h · $200</small></div></div><div class="row" style="margin-top:10px"><div class="bx bd">输入处理失效<small>实体与运行时未接通</small></div><span class="ar">→</span><div class="bx bd">不能玩</div><span style="width:22px"></span><div class="bx gd">AI 精灵/关卡生成 · 导出分享<small>物理有边缘 case</small></div></div>',
+ diagcap:'差距不在「功能多少」，而在核心链路通不通。',
+ analogy:'像是一个赶工的 MVP：接口都返回 200、页面都渲染出来了，但主流程的那一跳没接上。这类问题不会体现在任何静态指标里，只会体现在「有没有人真的跑通过一遍」。',
+ miss:{t:'把 20×/22× 的差距理解为「harness 让功能更多了」。',a:'更准确的读法是：裸调用产出的是一个核心断裂的壳。差别首先是能不能用，其次才是功能丰富度。'},
+ keys:['提示词一句话，两条路径：20min/$9 vs 6h/$200（≈20× / 22×）。',
+       '单 Agent 的致命伤是输入处理与运行时接线未完成——不可玩。',
+       'Harness 版含 AI 辅助生成、音频、导出分享，且真的能玩。',
+       '这组数字是「值不值得上 harness」的基准参照。'],
+ quiz:[
+  {q:'单 Agent 版 RetroForge 最致命的问题是：',o:['配色不统一','缺少音效系统','核心玩法失效：实体能显示但输入处理与运行时接线未完成','导出功能缺失'],a:2,e:'壳在、核心断，正是裸调用最典型的失败形态。'},
+  {q:'两种方式的成本时间对比大致是：',o:['2× 时间、3× 成本','20× 时间、22× 成本','5× 时间、5× 成本','时间相近，成本差 10 倍'],a:1,e:'20 分钟/$9 → 6 小时/$200。'}]
+},
+{id:'m12',num:'12',eyebrow:'演进',title:'简化原则：每个组件都在编码一个关于模型缺陷的假设',
+ sub:'全文最可迁移的一句方法论',prereqs:['m1'],
+ intuition:[
+  '这是整篇文章最该背下来的一句：每一个 harness 组件，都编码了一个关于模型局限的假设；而这些假设值得被压力测试，因为它们会很快过期。',
+  '上下文重置编码了「模型会有上下文焦虑」；sprint 拆分编码了「模型无法在长跨度上保持连贯」；评估器编码了「模型无法可靠自评」。每一条都曾经为真。问题在于，模型每升一级，其中某些就悄悄不再为真了——而组件还留在系统里，继续收着它的复杂度与延迟税。',
+  '他们给出的方法很朴素但有效：一次移除一个组件，测量它对最终结果的影响。这是消融实验（ablation），不是凭感觉重构。关键在于「一次一个」——同时删两个，你就分不清是谁在承重。'
+ ],
+ diagram:'<div class="row"><div class="bx">组件</div><span class="ar">=</span><div class="bx on">一个关于模型缺陷的假设<small>「模型做不到 X」</small></div></div><div class="row" style="margin-top:12px"><div class="bx">移除一个</div><span class="ar">→</span><div class="bx">测量结果变化</div><span class="ar">→</span><div class="col"><div class="bx gd">变差 → 承重，保留</div><div class="bx bd">不变 → 假设已过期，删</div></div></div>',
+ diagcap:'消融实验：一次只动一个变量，否则无法归因。',
+ analogy:'就是给架构做 ablation，跟你排查性能问题时一次只改一个参数是同一个纪律。也很像清理系统里的 feature flag：每个 flag 都编码了一个「当时的顾虑」，顾虑消失后没人回头删，最后你维护的是一堆已经没有意义的分支。',
+ miss:{t:'以为简化 harness 的目的是省钱。',a:'目的是识别哪些组件还在承重。承重的组件即使贵也要留（评估器在边界任务上就是），不承重的组件即使便宜也是纯粹的复杂度与延迟负担。'},
+ keys:['核心句：每个组件都编码了一个关于模型局限的假设，且假设会过期。',
+       '方法：一次移除一个组件，测量对最终结果的影响。',
+       '判据是「是否承重」，不是「是否便宜」。',
+       '新模型发布是重新做这套消融的天然时机。'],
+ quiz:[
+  {q:'「每个 harness 组件都编码了一个关于模型局限的假设」这句话的实践含义是：',o:['组件越多系统越健壮','这些假设会过期，必须定期通过逐个移除来压力测试','应该把假设写进文档','假设应由模型自己维护'],a:1,e:'they can go stale quickly——所以要 stress test。'},
+  {q:'为什么强调「一次移除一个组件」？',o:['为了降低回归风险','为了能把结果变化归因到具体组件','为了减少 token 消耗','为了兼容旧版模型'],a:1,e:'同时移除多个就无法判断谁在承重，这是消融实验的基本纪律。'}]
+},
+{id:'m13',num:'13',eyebrow:'演进',title:'Opus 4.6 与 Sprint 构造的退役',
+ sub:'一个组件从必需变成多余的完整过程',prereqs:['m12','m9'],
+ intuition:[
+  'Opus 4.6 带来的变化集中在几个方面：规划更审慎、能把 agentic 任务维持得更久、在更大的代码库中运行更可靠、自我纠错所需的代码审查与调试能力更强、长上下文检索更好。这些恰好正面命中了 sprint 构造存在的理由。',
+  '于是他们把 sprint 整个拿掉，只保留 planner 和 evaluator。结果是：模型能连续两个多小时保持连贯地构建，不再需要人为把工作切块。',
+  '但同一次实验也划出了边界：如果把 planner 也拿掉，生成器会自己缩小范围（under-scoped），产出的应用明显没那么丰富。所以「让模型自由发挥」不是简化的终点——planner 仍然承重。',
+  '评估器的位置也变了：从每个 sprint 结束时打分，变成整个任务结束后的单次 QA。它的价值变得任务相关——在触及模型能力边界的任务上仍然必需，在常规任务上就是纯开销。',
+  '还有一处提示词改进值得注意：为了让 Agent 正确构建「AI 功能」（真正的工具驱动 Agent 架构，而不是一个假的聊天框），需要大量迭代——因为这部分内容在训练数据里还太新。'
+ ],
+ diagram:'<div class="row"><span class="badge">旧</span><div class="bx">Planner</div><span class="ar">→</span><div class="bx bd">Sprint 1</div><span class="ar">→</span><div class="bx bd">QA</div><span class="ar">→</span><div class="bx bd">Sprint 2</div><span class="ar">→</span><div class="bx bd">QA</div><span class="ar">→</span><div class="bx">…</div></div><div class="row" style="margin-top:12px"><span class="badge">新</span><div class="bx on">Planner<small>仍承重</small></div><span class="ar">→</span><div class="bx gd">连续构建 2h+<small>无 sprint 切块</small></div><span class="ar">→</span><div class="bx on">QA 轮次<small>任务相关</small></div></div>',
+ diagcap:'退役的是 sprint，不是 planner——后者被验证仍然承重。',
+ analogy:'很像数据库升级后删掉应用层的手写分片逻辑：分片当年是因为单实例撑不住，现在引擎自己能扛了，那层代码就从「关键路径」变成了「历史包袱」。但连接池你还是得留着——不是所有旧组件都同时过期。',
+ miss:{t:'以为模型变强之后，planner 和 evaluator 也可以一并删掉，让模型自己端到端跑。',a:'实验结果相反：去掉 planner 后生成器会自我缩范围、产出更单薄。Evaluator 也没被删，只是从每冲刺一次改成末尾单次，且在边界任务上仍然必需。'},
+ table:{h:['组件','旧 harness','新 harness','结论'],r:[
+  ['Sprint 拆分','必需','已移除','假设过期'],
+  ['Planner','必需','保留','仍承重，去掉会 under-scope'],
+  ['Evaluator','每冲刺一次','末尾单次 QA','价值取决于任务难度'],
+  ['上下文重置','Sonnet 4.5 需要','Opus 4.5 起基本不需要','假设过期']]},
+ keys:['Opus 4.6：规划更审慎、长任务更持久、大代码库更可靠、自纠错与长上下文检索更强。',
+       'Sprint 被整体移除后，模型可连续构建 2 小时以上。',
+       'Planner 不能删——删了生成器会自我缩范围。',
+       'Evaluator 从每冲刺打分改为末尾单次，价值随任务难度而定。',
+       '让 Agent 正确构建工具驱动的 AI 功能，需要额外的提示词迭代（训练数据太新）。'],
+ quiz:[
+  {q:'移除 sprint 构造后，观察到的主要变化是：',o:['模型产出质量下降需要更多 QA','模型能连续两小时以上保持连贯构建','必须重新引入上下文重置','评估器变得完全不必要'],a:1,e:'2+ hours of uninterrupted coherent building。'},
+  {q:'如果连 planner 也一起移除，会发生什么？',o:['结果几乎不变，说明 planner 可删','生成器自我缩小范围，产出的应用功能明显更单薄','生成器会无限扩张范围导致超时','评估器无法给出反馈'],a:1,e:'under-scoped —— 这正是 planner 仍然承重的证据。'},
+  {q:'新 harness 中评估器的定位变成了：',o:['每个功能完成后立即打分','任务末尾的单次 QA，其价值取决于任务是否触及模型能力边界','完全由生成器自评替代','只检查代码质量维度'],a:1,e:'成本只有在任务超出单 Agent 可靠区间时才划算。'}]
+},
+{id:'m14',num:'14',eyebrow:'实测结果',title:'DAW 案例：成本结构与 QA 收敛过程',
+ sub:'3 小时 50 分、$124.70 的逐轮拆解',prereqs:['m13'],
+ intuition:[
+  '提示词同样是一句话：用 Web Audio API 在浏览器里做一个功能完整的 DAW（数字音频工作站）。',
+  '成本结构非常值得看：Planner 4.7 分钟 / $0.46；第 1 轮构建 2 小时 7 分 / $71.08，QA 8.8 分钟 / $3.24；第 2 轮构建 1 小时 2 分 / $36.89，QA 6.8 分钟 / $3.09；第 3 轮构建 10.9 分钟 / $5.88，QA 9.6 分钟 / $4.06。总计 3 小时 50 分、$124.70。规划和 QA 都很便宜，构建吃掉绝大部分预算，且每轮构建量呈数量级收敛。',
+  '第 1 轮 QA 的判断很典型：设计还原度和 AI Agent 都不错，但核心 DAW 功能只是「能显示、不能交互」——片段无法在时间轴上拖动、没有乐器 UI 面板（合成器旋钮、鼓垫）、没有可视化效果编辑器（EQ 曲线、压缩器表头）。而这些都是规格里明确写了的。',
+  '第 2 轮 QA 继续追：录音仍然只是个 stub（按钮能切换状态，但没有真正采集麦克风）、按边缘拖拽调整片段长度和片段切分都没实现、效果可视化还是数字滑块而不是图形。',
+  '最终成品：可用的编排视图、混音器和走带控制都在浏览器里跑起来了；用户可以通过对话创作——Agent 设定速度和调性、铺旋律、编鼓组、调电平、加混响。核心作曲原语齐备，Agent 能自主驱动这些工具完成一首作品。局限也很坦白：Claude 听不见声音，音乐品味不在它的能力范围内。'
+ ],
+ diagram:'<div class="row"><div class="bx">Planner<small>4.7min · $0.46</small></div><span class="ar">→</span><div class="bx bd">Build 1<small>2h07 · $71.08</small></div><span class="ar">→</span><div class="bx">Build 2<small>1h02 · $36.89</small></div><span class="ar">→</span><div class="bx gd">Build 3<small>10.9min · $5.88</small></div></div><div class="dg-cap" style="margin-top:10px">三轮 QA 分别为 8.8min/$3.24、6.8min/$3.09、9.6min/$4.06 —— 合计 3h50 · $124.70</div>',
+ diagcap:'构建成本逐轮塌缩（71 → 37 → 6 美元），QA 成本几乎恒定且极低。',
+ analogy:'成本曲线的形状和一次大重构后的缺陷收敛曲线一模一样：第一轮修一大堆，第二轮少一半，第三轮只剩零碎。而 QA 那一列几乎是常数——就像跑一遍完整回归测试的开销不随代码改动量变化。',
+ miss:{t:'以为 QA 环节是拖慢流程的主要成本。',a:'数据相反：三轮 QA 合计约 25 分钟、$10.39，占总成本不到 9%。绝大部分预算在构建轮。QA 便宜而杠杆高。'},
+ table:{h:['阶段','耗时','成本'],r:[
+  ['Planner','4.7 分钟','$0.46'],
+  ['Build 1','2 小时 7 分','$71.08'],
+  ['QA 1','8.8 分钟','$3.24'],
+  ['Build 2','1 小时 2 分','$36.89'],
+  ['QA 2','6.8 分钟','$3.09'],
+  ['Build 3','10.9 分钟','$5.88'],
+  ['QA 3','9.6 分钟','$4.06'],
+  ['合计','3 小时 50 分','$124.70']]},
+ keys:['总计 3h50 / $124.70，其中构建占绝大部分，QA 极便宜。',
+       '构建成本逐轮收敛：$71 → $37 → $6。',
+       '第 1 轮的典型缺陷是「能显示、不能交互」；第 2 轮是 stub 与未实现的编辑能力。',
+       '成品可通过对话完成作曲全流程，但 Claude 听不见声音，音乐品味不在能力范围。'],
+ quiz:[
+  {q:'DAW 案例中，第 1 轮 QA 发现的核心问题是：',o:['视觉设计不达标','核心 DAW 功能只能显示、无法交互（片段不能拖动、缺乏乐器与效果编辑 UI）','AI Agent 功能完全缺失','音频延迟过高'],a:1,e:'display-only without interaction depth，且这些功能规格里都明确写了。'},
+  {q:'从成本表能读出的结构性结论是：',o:['QA 是主要成本来源','构建成本逐轮数量级收敛，而 QA 成本低且基本恒定','规划阶段成本最高','每轮成本大致相等'],a:1,e:'$71→$37→$6；三轮 QA 合计约 $10。'},
+  {q:'文章坦承的能力边界是：',o:['无法生成超过 1000 行代码','Claude 听不见声音，音乐审美超出 Agent 能力范围','Web Audio API 不被支持','无法持久化项目文件'],a:1,e:'诚实标注能力边界，是这类实验报告可信度的一部分。'}]
+},
+{id:'m15',num:'15',eyebrow:'收束',title:'五条前瞻原则与中心论点',
+ sub:'把整篇文章压缩成可执行的工作方式',prereqs:['m12','m14'],
+ intuition:[
+  '文章最后给了五条原则。一，持续用已部署的模型在真实问题上做实验——不要基于对模型的印象做设计。二，去读执行轨迹（execution traces），根据你想要的结果去调优，而不是只看最终产物。三，把复杂任务分解，把专门的 Agent 指派给不同侧面。四，每当新模型发布，重新审视你的 harness，剥掉不再承重的组件。五，加入新的组件，去获得裸模型达不到的能力。',
+  '注意第四和第五条是一对：既要减，也要加。只减不加就是逐渐退化成裸调用；只加不减就是背着一堆过期假设越跑越慢。',
+  '中心论点是那句：有意思的 harness 组合空间不会随模型变强而缩小，它只是在移动——而 AI 工程师的工作，就是不断找到下一个新颖组合。这也是为什么模块 12 的「假设会过期」必须变成一种周期性的工作习惯，而不是一次性的重构。'
+ ],
+ diagram:'<div class="row"><div class="bx">1 真实问题上持续实验</div><div class="bx">2 读执行轨迹调优</div><div class="bx">3 分解任务 · 专职 Agent</div></div><div class="row" style="margin-top:9px"><div class="bx bd">4 新模型 → 剥掉不承重组件</div><span class="ar">+</span><div class="bx gd">5 加入新组件突破基线</div></div>',
+ diagcap:'第 4 与第 5 条必须成对执行，这就是「空间在移动而非缩小」的操作化版本。',
+ analogy:'和依赖升级的纪律一样：升级运行时之后既要删掉那些为老版本写的 polyfill，也要开始用新版本才有的能力。只做一半的团队，要么背着历史包袱，要么白升级了。',
+ miss:{t:'把结论读成「模型变强了，工程工作会变少」。',a:'原文的意思是工作会转移：旧组件退役的同时，新的、能突破基线能力的组件成为新的工程重点。总量不减，位置在挪。'},
+ keys:['五条原则：真实实验 / 读轨迹 / 分解与专职 / 新模型时做减法 / 同时做加法。',
+       '减法与加法必须成对，否则要么退化成裸调用，要么背历史包袱。',
+       '中心论点：组合空间会移动，不会缩小。',
+       '「重审 harness」应当是随模型发布周期性触发的习惯。'],
+ quiz:[
+  {q:'文章的中心论点是：',o:['模型足够强后 harness 会逐渐消失','有价值的 harness 组合空间会移动而非缩小，工程师的工作是持续寻找新组合','多 Agent 架构总是优于单 Agent','评估器是所有 harness 的必备组件'],a:1,e:'the space moves, it doesn\'t shrink。'},
+  {q:'「读执行轨迹」这条原则强调的是：',o:['只看最终产物是否合格','根据中间过程调优系统行为，而不仅评判结果','把轨迹作为训练数据','用轨迹长度衡量任务复杂度'],a:1,e:'read execution traces to tune performance toward desired outcomes。'}]
+}
+];
+
+/* ---------------- feynman ---------------- */
+var FEY=[
+{id:'f1',t:'为什么不能靠「提示词里要求严格自评」替代独立评估器',
+ p:'同事说：「加一个评估 Agent 太贵了，我在系统提示词里写一句『完成后请严格自我批评』不就行了？」请说服或反驳他。',
+ c:['指出自评偏差是系统性的：同一次调用同时担任辩护与攻击角色','区分有二值验证的任务与主观任务，后者没有信号能纠偏','引用文中判断：调教独立评估器比让生成器自我批判更 tractable','说明外部评估的产物是具体迭代目标，不只是一个分数','承认成本是真实的，并给出「任务是否超出裸模型可靠区间」这个决策标准']},
+{id:'f2',t:'Compaction 与 Context Reset 该怎么选',
+ p:'你在设计一个要跑几小时的 Agent 系统，同事问：上下文管理是用压缩还是用重置？请给出你的判断依据。',
+ c:['压缩保连续性，但保不住上下文焦虑（解释为什么）','重置消除焦虑，但需要结构化交接产物才能不丢状态','列出重置的三项代价：编排复杂度、token 开销、延迟','指出这个选择是模型相关的：Sonnet 4.5 需要，Opus 4.5 起基本不需要','由此引出「组件编码的假设会过期」这条更一般的原则']},
+{id:'f3',t:'把主观质量变成可评分标准的方法',
+ p:'产品经理要你给「界面做得好不好」建立一套自动评分。请讲清你会怎么拆维度、怎么定权重。',
+ c:['拆成可分别举证的维度，而不是一个综合分','说明每个维度考察什么：整体感 / 原创性 / 技术工艺 / 可用性','解释原创性维度专门用于惩罚模板化的 AI slop','权重按模型（或团队）的弱项分配，而不是平均','提醒标准本身会引导产出——措辞在第一轮就影响输出方向']},
+{id:'f4',t:'为什么规格不该写细粒度实现细节',
+ p:'一位同事写了一份 60 页的规格，把每个函数的实现都定死了，理由是「这样 Agent 就不会跑偏」。请解释这为什么反而危险。',
+ c:['规格中的错误会级联进全部下游实现','实现决策应留给能看到真实约束的执行方','对比 planner 的正确分寸：范围上有野心、实现上克制','补充另一面：完全删掉 planner 会导致 under-scope，所以不是「越少越好」','可引用 sprint contract：应该被前置冻结的是验收标准，不是实现方式']},
+{id:'f5',t:'如何判断一个 harness 组件还该不该留着',
+ p:'你接手了一套半年前搭的 Agent 系统，里面有上下文重置、任务分片、评估器、重试队列等一堆组件。新模型刚发布，你打算怎么处理？',
+ c:['先把每个组件翻译成它所编码的「模型做不到 X」的假设','逐个移除并测量对最终结果的影响，一次只动一个','判据是「是否承重」，不是「是否便宜」——边界任务上贵的评估器也要留','举 sprint 退役但 planner 保留的例子说明不是全都过期','同时考虑加法：新模型允许你加入哪些以前做不到的组件']},
+{id:'f6',t:'向非技术同事解释 harness 的成本收益',
+ p:'老板看到一次运行花了 200 美元，问：为什么不用那个 9 美元 20 分钟的版本？',
+ c:['先讲清 9 美元版本的实际状态：壳在、核心链路断裂、不可玩','说明差距首先是「能不能用」，其次才是功能丰富度','给出诚实的倍数：约 20× 时间、22× 成本','给出决策规则：任务是否超出裸模型可靠区间','用 DAW 成本表补充：QA 极便宜（占比不到一成），贵的是构建轮']}
+];
+
+/* ---------------- exam ---------------- */
+var EXAM=[
+{tag:'m4',q:'你的 Agent 在生成一份营销落地页后报告「设计已达到专业水准」，但实际排版混乱。最可能的根因与解法是：',o:['上下文溢出；扩大窗口','自评偏差；引入独立评估器提供外部具体反馈','工具调用失败；增加重试','模型版本过旧；升级模型'],a:1,e:'主观任务缺乏二值信号，自评必然失真，解法是角色分离。'},
+{tag:'m12',q:'你接手的 harness 里有一个「每 5 轮强制上下文重置」的组件。升级模型后应该怎么做？',o:['直接删掉，新模型肯定不需要','保留，因为删除有风险','单独移除这一个组件并测量结果变化，据此决定去留','把间隔从 5 轮改成 10 轮'],a:2,e:'消融实验：一次一个变量，用结果说话，而不是靠猜或靠惯性。'},
+{tag:'m2',q:'一个 Agent 在长任务后期突然把剩余功能写成 stub 并输出总结，此时上下文其实还有余量。这是：',o:['工具调用超时','上下文焦虑导致的提前收尾','评估器阈值过松','规格描述不清'],a:1,e:'发生在真正塞满之前的主动行为退化。'},
+{tag:'m8',q:'给 Planner 写系统提示词时，以下哪条最符合文中做法？',o:['范围保守、实现细节详尽','范围有野心、实现细节克制','范围与实现都尽量详尽','范围与实现都尽量留白'],a:1,e:'防止规格错误级联；同时避免 under-scope。'},
+{tag:'m9',q:'团队想让两个 Agent 协作但担心一方过度约束另一方。文中的做法是：',o:['共享同一个上下文窗口','用消息队列传结构化 JSON','用文件通信并先协商冲刺契约，忠于规格但不过度规定','由人工在中间转述'],a:2,e:'file-based communication + pre-sprint negotiation。'},
+{tag:'m10',q:'评估器最能抓到、而代码审查最容易漏掉的缺陷类型是：',o:['命名不规范','缺少类型注解','运行时才暴露的行为缺陷，如路由顺序导致的 422','注释不足'],a:2,e:'三个实例都属于「读代码正常、跑一下才炸」。'},
+{tag:'m5',q:'你要给一个「模型工艺已达标但缺乏原创性」的场景设计评分卡。最合理的权重策略是：',o:['四维等权，保证公平','加重原创性维度，弱化已达标维度的权重','只保留原创性一个维度','按用户投诉频率分配权重'],a:1,e:'评分卡是推力方向，不是公平评价工具。'},
+{tag:'m3',q:'你选择用 context reset 管理长任务，最必须先落实的是：',o:['把模型换成上下文更长的版本','设计结构化交接产物，把进度与关键约定显式外化','降低采样温度','增加重试次数'],a:1,e:'没有交接产物，重置就等于失忆重做。'},
+{tag:'m7',q:'团队发现评分标准里写了「museum quality」后，输出全都变成了某种特定风格。正确的解读是：',o:['模型过拟合了训练数据','评分标准的措辞在任何反馈之前就在塑造输出，标准既是尺子也是舵','Playwright 截图影响了生成','应该删掉所有形容词'],a:1,e:'第一轮就优于无提示基线，证明标准本身有引导力。'},
+{tag:'m13',q:'新模型能连续构建两小时以上后，你决定删掉 sprint 拆分。同时你还应该：',o:['把 planner 也删掉，让模型完全自主','保留 planner，否则生成器会自我缩小范围','把评估器改为每 10 分钟运行一次','恢复上下文重置以防万一'],a:1,e:'实验显示删掉 planner 导致 under-scoped、产出单薄。'},
+{tag:'m11',q:'裸调用产出的应用「页面都在、按钮都有，但主流程点不通」。这最贴近文中哪个观察？',o:['DAW 第 2 轮的 stub 问题','RetroForge 单 Agent 版：实体能显示但输入处理与运行时接线未完成','荷兰博物馆第 10 轮的 pivot','Sprint 3 的 27 条验收标准'],a:1,e:'壳在核心断，是裸调用最典型的失败形态。'},
+{tag:'m14',q:'你在给一个 harness 项目做预算，参考 DAW 数据，最该压缩的是：',o:['QA 轮次，因为它拖慢流程','规划阶段，因为产出只是文档','首轮构建，因为它占了总成本的一半以上','评估器的截图次数'],a:2,e:'Build 1 是 $71.08 / 总 $124.70；三轮 QA 合计仅约 $10。'},
+{tag:'m6',q:'你的评估器在跑了 40 轮之后打分越来越松。最直接的对策是：',o:['降低生成器温度','用带详细分数拆解的少样本示例校准评估器','增加评估维度数量','缩短每轮迭代时间'],a:1,e:'few-shot + score breakdown 正是用来抑制 drift 的。'},
+{tag:'m1',q:'什么时候最不该上完整 harness？',o:['任务触及模型能力边界时','任务需要主观审美判断时','裸模型已能可靠完成的常规任务','需要跨大型代码库保持一致性时'],a:2,e:'评估器等组件的成本只在超出裸模型可靠区间时才划算。'},
+{tag:'m15',q:'新模型发布时，文中建议的完整动作是：',o:['只做减法：剥掉不再承重的组件','只做加法：接入新能力','同时做减法与加法：剥掉过期组件，并加入能突破基线的新组件','冻结 harness，先观察一个季度'],a:2,e:'第 4 与第 5 条原则成对，这正是「空间在移动」的操作化。'},
+{tag:'m7',q:'荷兰博物馆实验中，从第 9 轮到第 10 轮的变化属于：',o:['refine（在当前方向精修）','pivot（掉头换方向）','回滚到更早版本','评估器误判导致的偏移'],a:1,e:'干净的深色落地页 → CSS perspective 3D 空间导航，是一次方向性掉头。'},
+{tag:'m10',q:'评估器的四个维度中有一项不达标，但其余三项都远超阈值。按文中机制应当：',o:['加权平均后放行','触发详细反馈并打回','由生成器自评决定','降低该维度阈值'],a:1,e:'hard thresholds，不做加权妥协。'},
+{tag:'m14',q:'DAW 项目最终的诚实局限声明是：',o:['无法在浏览器中运行','Claude 听不见声音，音乐品味超出 Agent 能力范围','无法集成 Web Audio API','无法通过对话控制'],a:1,e:'能力边界要被明确标注，这是实验报告可信度的一部分。'}
+];
+
+/* ---------------- cheatsheet ---------------- */
+var CHEAT={
+ tree:[
+  ['任务在裸模型可靠区间内？','是 → 直接裸调用，别上 harness（20min/$9 就够）'],
+  ['否，触及能力边界？','→ 上 Planner（防 under-scope）'],
+  ['产出有二值验证信号吗？','无（设计/主观）→ 必须独立 Evaluator + 可打分维度'],
+  ['模型有上下文焦虑吗？','有 → context reset + 交接产物；无 → 省掉这层'],
+  ['模型能长跨度保持连贯吗？','能 → 删掉 sprint 拆分；不能 → 保留分片'],
+  ['新模型发布了？','→ 逐个移除组件做消融，同时寻找可新增的组件']
+ ],
+ qa:[
+  ['为什么不让 Agent 自评？','主观任务无二值信号；同一次调用兼任辩护与攻击；调教独立评估器更 tractable。'],
+  ['compaction 和 reset 怎么选？','压缩保连续性但留焦虑；重置消焦虑但要交接产物 + 复杂度/token/延迟三项代价。'],
+  ['怎么把设计变成可打分的？','拆四维（整体感/原创性/工艺/可用性），按模型弱项加权，用少样本锚定防漂移。'],
+  ['规格该写多细？','范围野心大、实现细节克制——实现细节的错误会级联。'],
+  ['harness 组件该不该删？','每个组件 = 一个「模型做不到 X」的假设；一次移除一个测承重，判据是承重而非便宜。'],
+  ['模型变强后工程变少了吗？','没有，只是位置在挪：旧组件退役、新组件顶上，组合空间移动而非缩小。'],
+  ['harness 贵在哪？','构建轮。DAW 例中 Build1 占 $71/$124.70，三轮 QA 合计约 $10。'],
+  ['评估器怎么保证有效？','用 Playwright 操作真实应用（UI/API/DB），四维硬阈值，任一不过即打回。']
+ ]
+};
+
+/* ---------------- helpers: state math ---------------- */
+function modQuizStat(m){
+  var tot=0,ok=0;
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i;
+    if(state.answers[k]!==undefined){tot++;if(state.answers[k]===q.a)ok++;}
+  });
+  return {tot:tot,ok:ok,rate:tot?ok/tot:0,total:m.quiz.length};
+}
+function modStatus(m){
+  var s=modQuizStat(m);
+  if(s.tot===0)return 'none';
+  return (s.ok/s.tot)>=0.7 && s.tot===s.total ? 'master' : 'review';
+}
+function statusIcon(st){
+  if(st==='master')return {c:'st-master',i:'✓'};
+  if(st==='review')return {c:'st-review',i:'!'};
+  return {c:'st-none',i:'○'};
+}
+function byId(id){for(var i=0;i<MODULES.length;i++)if(MODULES[i].id===id)return MODULES[i];return null;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ---------------- sidebar ---------------- */
+var view='home';
+function renderNav(){
+  var h='<div class="navsec">总览</div>';
+  h+='<div class="navitem'+(view==='home'?' active':'')+'" data-v="home"><span class="ico">▤</span><span class="nvt">学习地图</span></div>';
+  h+='<div class="navsec">模块</div>';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st);
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div class="navitem'+(view===m.id?' active':'')+'" data-v="'+m.id+'">'+
+       '<span class="ico '+ic.c+'">'+ic.i+'</span>'+
+       '<span class="nvt"><span class="num">'+m.num+'</span> '+esc(m.title)+
+       (pend.length?'<span class="pend">前置未掌握：'+pend.map(function(p){return byId(p).num;}).join(' · ')+'</span>':'')+
+       '</span></div>';
+  });
+  h+='<div class="navsec">练习</div>';
+  h+='<div class="navitem'+(view==='fey'?' active':'')+'" data-v="fey"><span class="ico">✎</span><span class="nvt">费曼实验室</span></div>';
+  h+='<div class="navitem'+(view==='exam'?' active':'')+'" data-v="exam"><span class="ico">◆</span><span class="nvt">综合测验</span></div>';
+  h+='<div class="navitem'+(view==='cheat'?' active':'')+'" data-v="cheat"><span class="ico">▤</span><span class="nvt">速查表</span></div>';
+  document.getElementById('nav').innerHTML=h;
+  document.getElementById('nav').querySelectorAll('.navitem').forEach(function(el){
+    el.onclick=function(){go(el.getAttribute('data-v'));};
+  });
+  var mastered=MODULES.filter(function(m){return modStatus(m)==='master';}).length;
+  var pct=Math.round(mastered/MODULES.length*100);
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='掌握度 '+pct+'%';
+  document.getElementById('pcnt').textContent=mastered+'/'+MODULES.length;
+}
+
+/* ---------------- views ---------------- */
+function renderHome(){
+  var h='<div class="eyebrow">Anthropic Engineering</div>';
+  h+='<h2 class="vt">Harness 设计：让 Agent 跑完长任务</h2>';
+  h+='<p class="sub">目标：读完这 15 个模块后，你能独立判断一个 Agent 系统该加哪些组件、该删哪些组件，以及为什么。</p>';
+  h+='<div class="card"><span class="lbl">使用方式</span>按侧边栏顺序过模块 → 每个模块末尾做 2–3 题即时自测（正确率 ≥70% 且全部作答即标记为已掌握）→ 去费曼实验室用自己的话讲一遍 → 最后做 18 题综合测验，系统会自动列出薄弱模块和它们的前置依赖。进度会自动保存。</div>';
+  h+='<div class="dg"><div class="row"><div class="bx">一句提示词</div><span class="ar">→</span><div class="bx on">Planner<small>完整规格</small></div><span class="ar">→</span><div class="bx on">Generator<small>实现</small></div><span class="ar">→</span><div class="bx on">Evaluator<small>实测 · 硬阈值</small></div><span class="ar">→</span><div class="bx gd">可用的应用</div></div><div class="row" style="margin-top:10px"><span class="ar" style="margin-left:8px">↑______________ 具体批评回灌 ______________|</span></div><div class="dg-cap">全文的核心心智模型：把「谁来定义 done」和「谁来判断做没做到」从生成者身上拿走。剩下的所有细节，都是这个结构在不同模型能力下的变体。</div></div>';
+  h+='<h3>模块地图</h3><div class="grid">';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st),s=modQuizStat(m);
+    h+='<div class="mcard" data-v="'+m.id+'"><div class="mn">'+m.num+' · '+esc(m.eyebrow)+'</div><h4>'+esc(m.title)+'</h4><p>'+esc(m.sub)+'</p><div class="ft"><span>'+
+       (m.prereqs.length?m.prereqs.map(function(p){return '<span class="badge">前置 '+byId(p).num+'</span>';}).join(''):'<span class="badge">基础</span>')+
+       '</span><span class="'+ic.c+'">'+ic.i+' '+(s.tot?s.ok+'/'+s.tot:'未开始')+'</span></div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function renderModule(m){
+  var h='<div class="eyebrow">'+m.num+' · '+esc(m.eyebrow)+'</div><h2 class="vt">'+esc(m.title)+'</h2><p class="sub">'+esc(m.sub)+'</p>';
+  if(m.prereqs.length){
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div style="margin-bottom:20px">'+m.prereqs.map(function(p){return '<span class="badge">前置 '+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join('')+
+       (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:6px">这些前置模块尚未掌握，本模块可能读起来更吃力。</div>':'')+'</div>';
+  }
+  m.intuition.forEach(function(p){h+='<p>'+p+'</p>';});
+  h+='<div class="dg">'+m.diagram+'<div class="dg-cap">'+esc(m.diagcap)+'</div></div>';
+  h+='<div class="box-analogy"><span class="lbl">类比锚点</span>'+m.analogy+'</div>';
+  h+='<div class="box-miss"><div class="mt">✗ 常见误解：'+esc(m.miss.t)+'</div><div class="ma">✓ 实际上：'+esc(m.miss.a)+'</div></div>';
+  if(m.table){
+    h+='<div class="tblwrap"><table><thead><tr>'+m.table.h.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+
+       m.table.r.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+  }
+  h+='<div class="box-key"><span class="lbl">关键要点</span><ul>'+m.keys.map(function(k){return '<li>'+esc(k)+'</li>';}).join('')+'</ul></div>';
+  h+='<div class="hr"></div><h3>即时自测</h3><div id="quiz"></div>';
+  var idx=MODULES.indexOf(m);
+  h+='<div class="btnrow">';
+  if(idx>0)h+='<button class="btn ghost" data-go="'+MODULES[idx-1].id+'">← '+MODULES[idx-1].num+'</button>';
+  if(idx<MODULES.length-1)h+='<button class="btn" data-go="'+MODULES[idx+1].id+'">下一模块 '+MODULES[idx+1].num+' →</button>';
+  else h+='<button class="btn" data-go="fey">进入费曼实验室 →</button>';
+  h+='</div>';
+  return h;
+}
+
+function paintQuiz(m){
+  var box=document.getElementById('quiz');if(!box)return;
+  var h='';
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i, ans=state.answers[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-k="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'正确':'不对')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){
+      state.answers[b.getAttribute('data-k')]=parseInt(b.getAttribute('data-j'),10);
+      save();paintQuiz(m);renderNav();
+    };
+  });
+}
+
+function renderFey(){
+  var h='<div class="eyebrow">Feynman Lab</div><h2 class="vt">费曼实验室</h2><p class="sub">这 6 个点是「感觉懂了、一开口就露馅」的重灾区，也是面试官最爱追问的地方。先写，再展开对照清单。</p>';
+  FEY.forEach(function(f){
+    var d=state.fey[f.id]||{txt:'',r:0};
+    h+='<div class="card"><h3 style="margin-top:0">'+esc(f.t)+'</h3><p style="color:var(--dim);font-size:13.5px">'+esc(f.p)+'</p>'+
+       '<textarea data-f="'+f.id+'" placeholder="用你自己的话讲清楚，别照抄术语…">'+esc(d.txt)+'</textarea>'+
+       '<details><summary>展开对照清单（先写完再看）</summary><ul>'+f.c.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ul></details>'+
+       '<div class="rate"><span>自评：</span>'+[1,2,3,4,5].map(function(n){return '<button data-fr="'+f.id+'" data-n="'+n+'" class="'+(d.r===n?'sel':'')+'">'+n+'</button>';}).join('')+'<span style="margin-left:6px">1=讲不出 · 5=能教别人</span></div></div>';
+  });
+  h+='<div class="btnrow"><button class="btn" data-go="exam">去做综合测验 →</button></div>';
+  return h;
+}
+function bindFey(){
+  document.querySelectorAll('textarea[data-f]').forEach(function(t){
+    t.oninput=function(){
+      var id=t.getAttribute('data-f');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].txt=t.value;save();
+    };
+  });
+  document.querySelectorAll('button[data-fr]').forEach(function(b){
+    b.onclick=function(){
+      var id=b.getAttribute('data-fr');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].r=parseInt(b.getAttribute('data-n'),10);save();go('fey');
+    };
+  });
+}
+
+function renderExam(){
+  var h='<div class="eyebrow">Final Exam</div><h2 class="vt">综合测验</h2><p class="sub">18 题，跨模块打散，以情景应用题为主。全部作答后会自动定位薄弱模块及其前置依赖。</p><div id="exambox"></div>';
+  return h;
+}
+function paintExam(){
+  var box=document.getElementById('exambox');if(!box)return;
+  var h='';
+  EXAM.forEach(function(q,i){
+    var k='e'+i,ans=state.exam[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-ek="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'正确':'不对')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  var done=EXAM.filter(function(q,i){return state.exam['e'+i]!==undefined;}).length;
+  if(done===EXAM.length){
+    var ok=EXAM.filter(function(q,i){return state.exam['e'+i]===q.a;}).length;
+    var pct=Math.round(ok/EXAM.length*100);
+    var verdict = pct>=90?'扎实——可以直接拿去讲了。':pct>=75?'基础牢，薄弱点集中在下面这几块。':pct>=55?'主干抓住了，细节和数字还需要回炉。':'建议按前置顺序重读一遍再来。';
+    // weak modules: any module with a wrong tagged answer
+    var weakIds=[];
+    EXAM.forEach(function(q,i){if(state.exam['e'+i]!==q.a&&weakIds.indexOf(q.tag)<0)weakIds.push(q.tag);});
+    var wh='';
+    weakIds.forEach(function(id){
+      var m=byId(id);
+      // prereq check against each prereq module's OWN quick-check mastery status
+      var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+      wh+='<div style="margin-bottom:9px"><span class="wl" data-go="'+m.id+'">'+m.num+' '+esc(m.title)+'</span>'+
+          (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:3px">先补 '+pend.map(function(p){return '<span class="wl" data-go="'+p+'">'+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join('、')+'——它是本模块的前置且自测尚未达标。</div>':'')+
+          '</div>';
+    });
+    h='<div class="card"><span class="lbl">成绩</span><div class="score">'+pct+'%</div><div style="color:var(--dim)">'+ok+' / '+EXAM.length+' 题正确 · '+verdict+'</div>'+
+      (weakIds.length?'<div class="weak"><span class="lbl">需要回看的模块</span>'+wh+'</div>':'<div class="weak" style="color:var(--good)">全部答对，没有薄弱模块。</div>')+
+      '<div class="btnrow"><button class="btn ghost" id="reexam">清空重做</button><button class="btn" data-go="cheat">去看速查表 →</button></div></div>'+h;
+  }else{
+    h='<div class="card" style="color:var(--dim)">已作答 <span class="num">'+done+'/'+EXAM.length+'</span> —— 全部完成后显示成绩与薄弱模块定位。</div>'+h;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){state.exam[b.getAttribute('data-ek')]=parseInt(b.getAttribute('data-j'),10);save();paintExam();};
+  });
+  var re=document.getElementById('reexam');
+  if(re)re.onclick=function(){state.exam={};save();paintExam();};
+  box.querySelectorAll('[data-go]').forEach(function(el){el.onclick=function(){go(el.getAttribute('data-go'));};});
+}
+
+function renderCheat(){
+  var h='<div class="eyebrow">Cheatsheet</div><h2 class="vt">速查表</h2><p class="sub">无解释，纯密度。面试或评审前 5 分钟扫这一页。</p>';
+  h+='<h3>决策树：这个组件该不该上</h3><div class="dg">';
+  CHEAT.tree.forEach(function(r){h+='<div class="row" style="margin-bottom:8px"><div class="bx" style="min-width:210px;text-align:left">'+esc(r[0])+'</div><span class="ar">→</span><div style="font-size:13px">'+esc(r[1])+'</div></div>';});
+  h+='</div>';
+  h+='<h3>核心对照表</h3><div class="tblwrap"><table><thead><tr><th>议题</th><th>方案 A</th><th>方案 B</th><th>判据</th></tr></thead><tbody>'+
+   '<tr><td>上下文管理</td><td>Compaction：保连续性、留焦虑</td><td>Reset：消焦虑、需交接产物</td><td>模型是否仍有上下文焦虑</td></tr>'+
+   '<tr><td>质量把关</td><td>生成器自评</td><td>独立 Evaluator（四维硬阈值）</td><td>是否存在二值验证信号</td></tr>'+
+   '<tr><td>任务分解</td><td>Sprint 切块 + 每轮 QA</td><td>连续构建 + 末尾单次 QA</td><td>模型能否长跨度保持连贯</td></tr>'+
+   '<tr><td>规格粒度</td><td>细到实现</td><td>范围野心大 + 实现克制</td><td>规格错误是否会级联</td></tr>'+
+   '<tr><td>要不要 harness</td><td>裸调用 20min/$9</td><td>Harness 6h/$200</td><td>是否超出裸模型可靠区间</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>四维评分卡</h3><div class="tblwrap"><table><thead><tr><th>维度</th><th>考察</th><th>权重策略</th></tr></thead><tbody>'+
+   '<tr><td>Design Quality</td><td>是否构成统一整体</td><td>加重（模型弱项）</td></tr>'+
+   '<tr><td>Originality</td><td>刻意创作 vs 模板默认 / AI slop</td><td>加重（模型弱项）</td></tr>'+
+   '<tr><td>Craft</td><td>层级、间距、色彩、对比度</td><td>常规</td></tr>'+
+   '<tr><td>Functionality</td><td>脱离美学的可用性</td><td>常规</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>数字速记</h3><div class="tblwrap"><table><thead><tr><th>场景</th><th>数字</th></tr></thead><tbody>'+
+   '<tr><td>RetroForge 裸调用 vs Harness</td><td>20min/$9 vs 6h/$200（≈20× / 22×）</td></tr>'+
+   '<tr><td>前端实验迭代规模</td><td>5–15 轮，单次最长 4 小时</td></tr>'+
+   '<tr><td>Sprint 3 契约</td><td>27 条验收标准</td></tr>'+
+   '<tr><td>DAW 总计</td><td>3h50 / $124.70</td></tr>'+
+   '<tr><td>DAW 构建收敛</td><td>$71.08 → $36.89 → $5.88</td></tr>'+
+   '<tr><td>DAW 三轮 QA 合计</td><td>约 25 分钟 / $10.39（&lt;9%）</td></tr>'+
+   '<tr><td>无 sprint 后连续构建</td><td>2 小时以上</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>高频追问与作答角度</h3><div class="tblwrap"><table><thead><tr><th>可能被问</th><th>作答角度</th></tr></thead><tbody>'+
+   CHEAT.qa.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>';}).join('')+'</tbody></table></div>';
+  return h;
+}
+
+/* ---------------- router ---------------- */
+function go(v){
+  view=v;
+  var main=document.getElementById('main');
+  if(v==='home')main.innerHTML=renderHome();
+  else if(v==='fey'){main.innerHTML=renderFey();bindFey();}
+  else if(v==='exam'){main.innerHTML=renderExam();paintExam();}
+  else if(v==='cheat')main.innerHTML=renderCheat();
+  else{var m=byId(v);main.innerHTML=renderModule(m);paintQuiz(m);}
+  main.querySelectorAll('[data-v],[data-go]').forEach(function(el){
+    if(el.closest('#exambox'))return;
+    el.onclick=function(){go(el.getAttribute('data-v')||el.getAttribute('data-go'));};
+  });
+  renderNav();
+  window.scrollTo(0,0);
+}
+
+/* ---------------- boot ---------------- */
+detect();
+Promise.resolve(load()).then(function(){
+  if(backend==='memory')document.getElementById('storenote').textContent='⚠ 当前环境无可用存储，进度仅保留在本次会话中，关闭页面后不会保存。';
+  go('home');
+});
+</script>
+</body>
+</html>

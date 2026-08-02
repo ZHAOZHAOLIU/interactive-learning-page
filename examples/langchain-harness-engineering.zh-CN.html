@@ -1,0 +1,785 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>Harness Engineering 实战</title></head><body><style>
+:root{
+  --paper:#f2f3f0; --panel:#fbfbfa; --panel2:#e9ebe6; --line:#d3d7cf;
+  --ink:#171b1a; --dim:#5f6a68;
+  --sig:#0e6b62; --sig-soft:rgba(14,107,98,.10);
+  --good:#2f7a4f; --bad:#a33227; --warn:#a06a12;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --body:"PingFang SC","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#121514; --panel:#191d1c; --panel2:#212624; --line:#303735;
+    --ink:#e8eae7; --dim:#96a09d;
+    --sig:#54b8ab; --sig-soft:rgba(84,184,171,.13);
+    --good:#5cbe86; --bad:#e0705f; --warn:#d6a340;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#f2f3f0; --panel:#fbfbfa; --panel2:#e9ebe6; --line:#d3d7cf;
+  --ink:#171b1a; --dim:#5f6a68;
+  --sig:#0e6b62; --sig-soft:rgba(14,107,98,.10);
+  --good:#2f7a4f; --bad:#a33227; --warn:#a06a12;
+}
+:root[data-theme="dark"]{
+  --paper:#121514; --panel:#191d1c; --panel2:#212624; --line:#303735;
+  --ink:#e8eae7; --dim:#96a09d;
+  --sig:#54b8ab; --sig-soft:rgba(84,184,171,.13);
+  --good:#5cbe86; --bad:#e0705f; --warn:#d6a340;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.78;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--sig);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+#app{display:flex;min-height:100vh}
+#sidebar{width:272px;flex:0 0 272px;background:var(--panel);border-right:1px solid var(--line);padding:20px 0 44px;position:sticky;top:0;height:100vh;overflow-y:auto}
+#main{flex:1;min-width:0;padding:36px 46px 96px;max-width:880px}
+.brand{padding:0 20px 15px;border-bottom:1px solid var(--line)}
+.brand h1{font-size:14.5px;margin:0 0 3px;font-weight:650;letter-spacing:-.01em}
+.brand p{margin:0;font-size:11.5px;color:var(--dim)}
+.progwrap{padding:14px 20px 15px;border-bottom:1px solid var(--line)}
+.progbar{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.progbar i{display:block;height:100%;background:var(--sig);width:0;transition:width .35s}
+.progmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:7px}
+.navsec{font-size:10.5px;color:var(--dim);padding:14px 20px 5px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
+.navitem{display:flex;gap:9px;align-items:flex-start;padding:7px 20px;cursor:pointer;font-size:13px;border-left:2px solid transparent}
+.navitem:hover{background:var(--panel2)}
+.navitem.active{background:var(--sig-soft);border-left-color:var(--sig)}
+.navitem .ico{flex:0 0 14px;font-size:11px;line-height:1.95;text-align:center}
+.navitem .nvt{flex:1;min-width:0}
+.navitem .pend{font-size:10px;color:var(--warn);display:block;line-height:1.45}
+.st-none{color:var(--dim)} .st-review{color:var(--bad)} .st-master{color:var(--good)}
+#storenote{font-size:10.5px;color:var(--warn);padding:9px 20px 0;line-height:1.55}
+
+.eyebrow{font-family:var(--mono);font-size:10.5px;color:var(--sig);letter-spacing:.09em;text-transform:uppercase}
+h2.vt{font-size:26px;margin:8px 0 7px;line-height:1.32;font-weight:650;letter-spacing:-.015em;text-wrap:balance}
+.sub{color:var(--dim);margin:0 0 26px;font-size:14px}
+h3{font-size:15px;margin:32px 0 11px;font-weight:650;text-wrap:balance}
+p{margin:0 0 13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 19px;margin:0 0 16px}
+.anchor-note{border:1px dashed var(--line);border-radius:8px;padding:11px 15px;margin:0 0 18px;font-size:12.5px;color:var(--dim)}
+.box-analogy{border-left:2.5px solid var(--sig);background:var(--sig-soft);border-radius:0 7px 7px 0;padding:13px 17px;margin:17px 0}
+.box-miss{border:1px solid var(--line);border-radius:8px;padding:13px 17px;margin:17px 0;background:var(--panel)}
+.box-miss .mt{color:var(--bad);font-size:12.5px;margin-bottom:6px}
+.box-miss .ma{color:var(--good);font-size:12.5px}
+.box-key{background:var(--panel2);border-radius:8px;padding:15px 19px;margin:19px 0}
+.box-key ul{margin:8px 0 0;padding-left:19px}
+.box-key li{margin-bottom:5px}
+.lbl{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.09em;text-transform:uppercase;display:block;margin-bottom:6px}
+.tblwrap{overflow-x:auto;margin:17px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:430px}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+th{background:var(--panel2);font-weight:650;font-size:12.5px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);padding:1px 5px;border-radius:3px}
+.badge{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:3px;background:var(--panel2);color:var(--dim);margin-right:5px}
+
+.dg{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:19px;margin:19px 0;overflow-x:auto}
+.dg-cap{font-size:11.5px;color:var(--dim);margin-top:11px;line-height:1.6}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:9px}
+.bx{border:1px solid var(--line);background:var(--panel2);border-radius:5px;padding:9px 12px;font-size:12.5px;min-width:94px;text-align:center}
+.bx.on{border-color:var(--sig);color:var(--sig)}
+.bx.gd{border-color:var(--good);color:var(--good)}
+.bx.bd{border-color:var(--bad);color:var(--bad)}
+.bx small{display:block;color:var(--dim);font-size:10.5px}
+.ar{color:var(--sig);font-family:var(--mono);font-size:14px}
+/* score bars */
+.sb{display:flex;align-items:center;gap:11px;margin-bottom:8px;font-size:12.5px}
+.sb .nm{flex:0 0 150px;color:var(--dim)}
+.sb .tr{flex:1;height:16px;background:var(--panel2);border-radius:3px;overflow:hidden;min-width:90px}
+.sb .tr i{display:block;height:100%;background:var(--sig)}
+.sb .tr i.mut{background:var(--dim);opacity:.5}
+.sb .vl{flex:0 0 46px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:12px;margin-top:16px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s}
+.mcard:hover{border-color:var(--sig)}
+.mcard .mn{font-family:var(--mono);font-size:10.5px;color:var(--sig);letter-spacing:.06em}
+.mcard h4{margin:5px 0 6px;font-size:14px;font-weight:650;text-wrap:balance}
+.mcard p{font-size:12px;color:var(--dim);margin:0 0 10px;line-height:1.55}
+.mcard .ft{display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:6px}
+
+.q{margin:17px 0}
+.q .qt{font-weight:650;margin-bottom:9px}
+.opt{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:9px 13px;margin-bottom:7px;cursor:pointer;font-size:13.5px;display:block;width:100%;text-align:left}
+.opt:hover:not(.done){border-color:var(--sig)}
+.opt.ok{border-color:var(--good);background:rgba(47,122,79,.10)}
+.opt.no{border-color:var(--bad);background:rgba(163,50,39,.10)}
+.opt.done{cursor:default}
+.expl{font-size:12.5px;color:var(--dim);border-left:2px solid var(--line);padding-left:12px;margin-top:8px}
+.expl b.ok{color:var(--good)} .expl b.no{color:var(--bad)}
+
+textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:11px;font-family:inherit;font-size:13.5px;min-height:110px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--sig)}
+details{margin-top:10px;background:var(--panel2);border-radius:6px;padding:10px 14px}
+summary{cursor:pointer;font-size:13px;color:var(--sig)}
+details ul{margin:9px 0 0;padding-left:19px;font-size:13px}
+.rate{display:flex;gap:7px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--dim);flex-wrap:wrap}
+.rate button{width:28px;height:28px;border-radius:5px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-family:var(--mono)}
+.rate button.sel{border-color:var(--sig);background:var(--sig-soft);color:var(--sig)}
+.btn{background:var(--sig);color:var(--paper);border:none;border-radius:6px;padding:9px 17px;font-size:13.5px;font-weight:650;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:400}
+.btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+.score{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:42px;color:var(--sig);line-height:1.1}
+.weak{border:1px solid var(--line);border-radius:8px;padding:13px 16px;margin-top:13px;background:var(--panel)}
+.weak .wl{cursor:pointer;color:var(--sig);text-decoration:underline;font-size:13.5px}
+.hr{height:1px;background:var(--line);margin:34px 0}
+@media(max-width:820px){
+  #app{flex-direction:column}
+  #sidebar{width:100%;flex:none;height:auto;position:relative}
+  #main{padding:24px 18px 72px}
+  .sb .nm{flex:0 0 108px}
+}
+</style>
+
+<div id="app">
+  <nav id="sidebar">
+    <div class="brand">
+      <h1>Harness Engineering 实战</h1>
+      <p>52.8 → 66.5：一次可复现的攀爬</p>
+    </div>
+    <div class="progwrap">
+      <div class="progbar"><i id="pbar"></i></div>
+      <div class="progmeta"><span id="ptext">掌握度 0%</span><span id="pcnt" class="num">0/13</span></div>
+      <div id="storenote"></div>
+    </div>
+    <div id="nav"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+var KEY='deep-agents-harness-v1', mem={}, backend='memory', state={answers:{},exam:{},fey:{}};
+function detect(){
+  if(typeof window.storage!=='undefined'&&window.storage){backend='window.storage';return;}
+  try{window.localStorage.setItem('__t','1');window.localStorage.removeItem('__t');backend='localStorage';}
+  catch(e){backend='memory';}
+}
+function rawGet(){
+  try{
+    if(backend==='window.storage')return Promise.resolve(window.storage.getItem(KEY));
+    if(backend==='localStorage')return Promise.resolve(window.localStorage.getItem(KEY));
+  }catch(e){return Promise.resolve(null);}
+  return Promise.resolve(mem[KEY]||null);
+}
+function save(){
+  var v=JSON.stringify(state);
+  try{
+    if(backend==='window.storage'){window.storage.setItem(KEY,v);return;}
+    if(backend==='localStorage'){window.localStorage.setItem(KEY,v);return;}
+  }catch(e){backend='memory';}
+  mem[KEY]=v;
+}
+function load(){return rawGet().then(function(v){
+  if(v){try{var p=JSON.parse(v);state.answers=p.answers||{};state.exam=p.exam||{};state.fey=p.fey||{};}catch(e){}}
+});}
+
+var MODULES=[
+{id:'m1',num:'01',eyebrow:'定义',title:'Harness 要塑造的是「参差不齐的智能」',
+ sub:'spiky intelligence 这个词是整篇文章的地基',prereqs:[],
+ intuition:[
+  '文章开篇给了一个非常精准的定义：harness 的目标，是把模型本身参差不齐（inherently spiky）的智能，塑造成对我们关心的任务可用的形状。',
+  '「参差不齐」这个词值得停一下。它说的不是模型平均能力不够，而是能力分布极不均匀——同一个模型可能在写复杂算法上表现惊人，却在「先看一眼当前目录里有什么」这种小事上反复出错。你要做的不是把整体水位抬高（那是训练的事），而是把那些凹陷的地方用工程手段填平。',
+  'Harness engineering 因此被定义为：围绕模型做系统设计，以优化表现、token 效率和延迟。可调的东西包括系统提示词、工具选择、执行流程。',
+  '方法论只有一条，但它是全文的引擎：**用 trace 在规模上理解失败模式**。Trace 是模型输入输出的文本空间记录——因为它是文本，所以可以被另一个 agent 读取、聚合、归类。整个实验中模型固定为 GPT-5.2-Codex，唯一的变量是 harness。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">凹陷<small>环境探查</small></div><div class="bx gd">凸起<small>算法实现</small></div><div class="bx bd">凹陷<small>自我验证</small></div><div class="bx gd">凸起<small>代码生成</small></div><div class="bx bd">凹陷<small>时间估计</small></div></div><div class="row" style="margin-top:12px"><div class="bx on" style="min-width:auto">Harness</div><span class="ar">→</span><div style="font-size:12.5px;color:var(--dim)">只填凹陷，不碰凸起</div></div>',
+ diagcap:'能力分布是锯齿状的。Harness 的每个组件都应该对准某一个具体的齿谷，而不是泛泛地"让模型更强"。',
+ analogy:'和你给一个技术很强但流程习惯很差的新人做 onboarding 是一回事：你不会去教他写代码，你会给他一份环境说明、一个提交前 checklist、一条「改同一个文件超过三次就来找人聊聊」的建议。你补的全是他的凹陷。',
+ miss:{t:'把 harness engineering 理解为"给模型套一层提示词模板"。',a:'文中把可调项明确列成三类：系统提示词、工具、middleware（模型与工具调用周围的钩子）。提示词只是三分之一，而实际带来最大增益的多数改动是 middleware —— 确定性地注入上下文或拦截行为，不依赖模型"听话"。'},
+ keys:['Harness 的目标是塑造 spiky intelligence，针对具体的能力凹陷而非整体水位。',
+       '可调三项：系统提示词、工具、middleware。',
+       '核心方法论：用 trace 在规模上分析失败模式。',
+       '实验中模型恒定为 GPT-5.2-Codex，harness 是唯一变量——这是结论可归因的前提。'],
+ quiz:[
+  {q:'"spiky intelligence" 指的是：',o:['模型输出不稳定，同一输入结果不同','模型能力分布极不均匀，强项很强、弱项很弱','模型在长上下文中性能下降','模型推理成本随任务难度陡增'],a:1,e:'因为是锯齿状的，harness 才应该精确对准齿谷。'},
+  {q:'实验中为什么要固定模型为 GPT-5.2-Codex？',o:['因为它是当时最强的模型','为了让 harness 成为唯一变量，分数变化可归因','为了降低实验成本','因为其他模型不支持 middleware'],a:1,e:'控制变量是这类攀爬实验能得出结论的基本前提。'}]
+},
+{id:'m2',num:'02',eyebrow:'装置',title:'实验台：Terminal Bench 2.0 与四件基础设施',
+ sub:'先看清楚"分数"到底是什么分数',prereqs:['m1'],
+ intuition:[
+  '评测基准是 Terminal Bench 2.0：89 个任务，覆盖机器学习、调试、生物学三个领域。这是一个标准的 agentic coding benchmark——不是问答题，是让 agent 在真实终端环境里把事做成。',
+  '围绕它有四件基础设施，各司其职：Harbor 负责编排运行；Daytona 负责拉起沙箱；LangSmith 存下所有 agent 动作和指标（延迟、token 数、成本）。注意最后这个——如果 trace 没有被系统性地存下来并且可查询，后面整套方法论就不成立。',
+  '基线成绩是 52.8%，处于排行榜 Top 30 区间但进不了 Top 5。目标被限定得很死：**只通过 harness 改动**来提升，不换模型、不微调。',
+  '把基线数字记牢，因为后面每一项改动的价值都是相对它衡量的：最终 66.5%，净增 13.7 个点。'
+ ],
+ diagram:'<div class="row"><div class="bx on">Harbor<small>编排运行</small></div><span class="ar">→</span><div class="bx on">Daytona<small>拉起沙箱</small></div><span class="ar">→</span><div class="bx">89 个任务<small>ML · 调试 · 生物</small></div><span class="ar">→</span><div class="bx on">LangSmith<small>存 trace 与指标</small></div></div><div style="height:14px"></div><div class="sb"><span class="nm">基线</span><span class="tr"><i class="mut" style="width:52.8%"></i></span><span class="vl">52.8</span></div><div class="sb"><span class="nm">最终</span><span class="tr"><i style="width:66.5%"></i></span><span class="vl">66.5</span></div>',
+ diagcap:'LangSmith 那一格不是可选的观测性配件——它是第 04 模块整套 trace 分析的数据来源。',
+ analogy:'这套装置的角色分工，和你熟悉的 CI 基础设施几乎一一对应：Harbor 是 pipeline runner，Daytona 是 ephemeral runner 容器，LangSmith 是集中式日志与指标后端。没有最后那一层，你的 CI 就只能告诉你"红了"，没法告诉你"为什么总是在这一类 case 上红"。',
+ miss:{t:'把 52.8 → 66.5 的提升默认归因于"模型/提示词写得更好了"。',a:'实验明确锁死了模型。13.7 个点全部来自 harness 侧：middleware、上下文注入、推理档位编排。这也是这篇文章值得读的原因——它证明了 harness 是一个独立的、有可观回报的优化维度。'},
+ table:{h:['组件','职责'],r:[
+  ['Terminal Bench 2.0','89 个任务的评测基准（ML / 调试 / 生物学）'],
+  ['Harbor','编排运行'],
+  ['Daytona','拉起沙箱环境'],
+  ['LangSmith','存储 agent 动作与指标：延迟、token、成本']]},
+ keys:['Terminal Bench 2.0：89 个任务，跨 ML、调试、生物学。',
+       '基线 52.8%（Top 30 区间，进不了 Top 5），最终 66.5%，净增 13.7。',
+       '硬约束：只改 harness，不换模型不微调。',
+       'LangSmith 的 trace 存储是后续方法论的前置条件，不是可选配件。'],
+ quiz:[
+  {q:'实验的基线分和最终分分别是：',o:['48.0 → 60.0','52.8 → 66.5','52.8 → 63.6','59.6 → 66.5'],a:1,e:'净增 13.7 个点，全部来自 harness 侧改动。'},
+  {q:'LangSmith 在这套装置里承担的角色是：',o:['编排任务运行','拉起隔离沙箱','存储所有 agent 动作与指标，为 trace 分析提供数据源','对模型输出做安全过滤'],a:2,e:'没有可查询的 trace，第 04 模块的分析流程无从谈起。'}]
+},
+{id:'m3',num:'03',eyebrow:'装置',title:'三个旋钮：系统提示词 / 工具 / Middleware',
+ sub:'把"改进 agent"变成有限的、可枚举的动作空间',prereqs:['m1'],
+ intuition:[
+  '文章把 harness 的可调项收敛成三个旋钮，这个收敛本身就很有价值——它把"怎么让 agent 变好"这种没有边界的问题，变成了一个有限的动作空间。',
+  '**系统提示词**：告诉模型该怎么思考、遵循什么标准。它的特点是柔性的——模型可以不听。',
+  '**工具**：模型能调用什么。这决定了能力上界，很多看似"推理不行"的失败，实际根因是缺一个工具。',
+  '**Middleware**：模型调用和工具调用周围的钩子。这是三者中最被低估的一个，也是本文大部分增益的来源。它的关键性质是**确定性**——middleware 不请求模型配合，它直接在特定时机注入上下文或拦截行为。后面出现的三个组件（`PreCompletionChecklistMiddleware`、`LocalContextMiddleware`、`LoopDetectionMiddleware`）全都属于这一类。',
+  '读后面的模块时可以带着一个问题：这项改进是"求模型听话"（提示词），还是"让它没法不听"（middleware）？答案往往解释了它为什么有效。'
+ ],
+ diagram:'<div class="row"><div class="bx">系统提示词<small>柔性 · 可被忽略</small></div><div class="bx">工具<small>决定能力上界</small></div><div class="bx on">Middleware<small>确定性 · 钩子</small></div></div><div style="height:12px"></div><div class="row"><div class="bx" style="min-width:auto">启动时</div><span class="ar">→</span><div class="bx" style="min-width:auto">每次工具调用</div><span class="ar">→</span><div class="bx" style="min-width:auto">退出前</div><span style="font-size:12px;color:var(--dim);margin-left:8px">← middleware 的三个挂载时机</span></div>',
+ diagcap:'三个旋钮的差别不在功能，在强制力：提示词请求配合，middleware 不请求。',
+ analogy:'对应到工程实践就是"约定 vs 门禁"。团队规范文档里写「提交前请跑测试」是提示词；pre-commit hook 直接拦住你是 middleware。你知道这两者的实际执行率差多少——本文的增益大部分就来自这个差值。',
+ miss:{t:'认为 middleware 只是提示词的一种实现方式，效果等价。',a:'差别在确定性。提示词依赖模型每次都选择遵守；middleware 在固定时机无条件执行，比如强制在退出前跑一遍验证。文中多个改进正是把"提示词里说过但模型常忽略"的事，改造成了钩子。'},
+ keys:['三个旋钮：系统提示词、工具、middleware。',
+       '提示词是柔性的（可被忽略），middleware 是确定性的（无条件执行）。',
+       '工具缺失常被误诊为推理能力不足。',
+       '本文三个核心组件全部是 middleware。'],
+ quiz:[
+  {q:'Middleware 相对系统提示词的关键优势是：',o:['消耗更少 token','在固定时机确定性执行，不依赖模型选择遵守','可以动态切换模型','支持并行调用工具'],a:1,e:'"约定" vs "门禁" —— 执行率的差距就是增益的来源。'},
+  {q:'文中把 harness 的可调项收敛为三类，这个收敛的价值在于：',o:['减少了工程量','把无边界的"怎么改进 agent"变成有限可枚举的动作空间','让模型更容易理解指令','降低了 trace 存储成本'],a:1,e:'有边界的动作空间才谈得上系统性地遍历和归因。'}]
+},
+{id:'m4',num:'04',eyebrow:'方法论',title:'Trace Analyzer：把改进变成可重复的流程',
+ sub:'整篇文章真正的方法论内核',prereqs:['m2','m3'],
+ intuition:[
+  '如果只能从这篇文章带走一件事，是这个：他们做了一个 **trace analyzer skill**，把「分析错误并给出 harness 改进建议」这件事本身自动化了。',
+  '流程四步：从 LangSmith 拉取实验 trace；并行派生多个错误分析 agent，主 agent 汇总它们的发现；聚合反馈并做出针对性的 harness 改动；人工复核（可选但有益）。',
+  '注意第二步的形状——**并行分析 + 主 agent 综合**。失败模式的归类是天然可并行的（每个 trace 独立），而"这些失败共同指向哪个 harness 缺陷"是需要全局视野的综合工作。这个分工不是随意的。',
+  '文章把这套方法类比成机器学习里的 **boosting**：每一轮都聚焦在上一轮的失败样本上。这个类比很贴切，也直接带出了它的风险。',
+  '风险就是**过拟合**：针对具体任务过度调优会损失泛化能力并引发回归。这是全文唯一一处明确的警告，位置放在方法论段落而不是结尾，说明它是这套流程内生的问题而非事后的注意事项。'
+ ],
+ diagram:'<div class="row"><div class="bx">LangSmith trace</div><span class="ar">→</span><div class="col"><div class="bx on" style="min-width:auto">分析 agent</div><div class="bx on" style="min-width:auto">分析 agent</div><div class="bx on" style="min-width:auto">分析 agent</div></div><span class="ar">→</span><div class="bx">主 agent 综合</div><span class="ar">→</span><div class="bx gd">针对性 harness 改动</div><span class="ar">→</span><div class="bx">人工复核</div></div>',
+ diagcap:'并行归类 + 集中综合。前者可扩展，后者需要全局视野——两件事不该由同一个 agent 顺序做完。',
+ analogy:'和你做线上故障复盘的路数一样：先把一批告警按现象并行分类，再由一个人拉通看"这些是不是同一个根因"。区别只在于这里连分类那一步也交给了 agent，而"根因归纳"仍然保留了一个中心节点。过拟合的风险也对应得上——针对单次故障加的特判规则堆多了，系统就变脆了。',
+ miss:{t:'把 trace 分析理解为一次性的调试动作。',a:'它被做成了可重复的 skill，因为攀爬是多轮的：每一轮都基于上一轮的失败。这也是 boosting 类比成立的地方——以及为什么过拟合是这套流程的内生风险，需要人工复核和跨任务验证来对冲。'},
+ keys:['Trace analyzer 是一个可重复的 skill，不是一次性调试。',
+       '流程：拉 trace → 并行分析 agent → 主 agent 综合 → 针对性改动 →（建议）人工复核。',
+       '方法论类比 boosting：每轮聚焦上一轮的失败。',
+       '内生风险是过拟合到具体任务，代价是泛化能力下降和回归。'],
+ quiz:[
+  {q:'Trace analyzer 的流程为什么采用"并行分析 + 主 agent 综合"而非单个 agent 顺序处理？',o:['为了降低成本','失败归类可并行，而"共同指向哪个缺陷"需要全局视野，两者性质不同','因为单个 agent 上下文放不下','为了避免模型自评偏差'],a:1,e:'分工对应两种不同性质的工作。'},
+  {q:'文章把这套方法类比为 boosting，随之而来的内生风险是：',o:['训练成本过高','过拟合到具体任务，损失泛化能力并引发回归','trace 存储量爆炸','模型输出方差增大'],a:1,e:'所以人工复核虽标为可选，实际是重要的对冲手段。'}]
+},
+{id:'m5',num:'05',eyebrow:'改进 I',title:'Build & Self-Verify：四阶段与自我验证',
+ sub:'agent 最大的坏习惯是"看起来对了就交"',prereqs:['m4'],
+ intuition:[
+  'Trace 暴露的第一个失败模式非常普遍：agent 在得到第一个**看起来合理**的解之后就停了，不做测试，几乎没有自发的 build-verify 循环倾向。',
+  '核心洞察是一句可以直接抄走的话：**自我验证让 agent 能在单次运行内通过反馈自我改进**。注意限定词"单次运行内"——不需要重新训练，不需要人介入，反馈回路完全发生在这一次执行里。',
+  '据此定义了四个阶段。**规划与探查**：读任务、扫代码库、建立验证计划——注意验证计划是在动手前就要有的。**构建**：带着验证意识实现，创建测试。**验证**：跑测试，把输出对照**规格**而不是对照自己的代码。**修复**：分析错误、回看规格、精化方案。',
+  '第三阶段那个限定是整个方法的要害。对照自己的代码去验证，等于问"我实现的是不是我实现的那个东西"，永远为真。必须对照规格，才可能发现自己一开始就理解错了。'
+ ],
+ diagram:'<div class="row"><div class="bx on">1 规划探查<small>先建验证计划</small></div><span class="ar">→</span><div class="bx on">2 构建<small>同时写测试</small></div><span class="ar">→</span><div class="bx on">3 验证<small>对照规格</small></div><span class="ar">→</span><div class="bx on">4 修复<small>回看规格</small></div></div><div class="row" style="margin-top:8px"><span class="ar" style="margin-left:6px">↑______________ 单次运行内闭环 ______________|</span></div>',
+ diagcap:'第 3 步的比对对象若换成"自己的实现"，整个回路就退化成同义反复。',
+ analogy:'"对照规格而不是对照自己的代码"，就是测试用例不该从实现反推着写。你见过那种从函数体倒推出来的单测——覆盖率好看，行为改了它也跟着改，永远绿。Agent 的自验证如果不锚在规格上，就是同一种自欺。',
+ miss:{t:'以为"让 agent 自己测一下"就等于实现了自我验证。',a:'关键约束有两条：验证计划要在动手之前建立；比对基准必须是规格。少了任一条，agent 都可能测得很勤快却始终在验证一个错误的理解。'},
+ keys:['失败模式：拿到第一个看似合理的解就停止，缺乏自发的 build-verify 倾向。',
+       '核心洞察：自我验证让 agent 在单次运行内借反馈自我改进。',
+       '四阶段：规划探查 → 构建 → 验证 → 修复。',
+       '验证阶段必须对照规格，对照自身实现即同义反复。',
+       '验证计划应在构建之前就建立。'],
+ quiz:[
+  {q:'验证阶段中最关键的约束是：',o:['测试覆盖率必须达标','把输出对照规格而非自己的实现','必须使用独立的测试框架','验证必须由另一个 agent 执行'],a:1,e:'对照自身实现等于问"我做的是不是我做的"，恒为真。'},
+  {q:'"自我验证让 agent 自我改进"这句话里，改进发生的范围是：',o:['跨运行，需要重新训练','单次运行内，通过反馈闭环','需要人工介入每一轮','仅在多 agent 系统中成立'],a:1,e:'within a run —— 这正是它便宜且可规模化的原因。'}]
+},
+{id:'m6',num:'06',eyebrow:'改进 I',title:'把验证做成钩子：PreCompletionChecklistMiddleware',
+ sub:'从"提示它去验证"到"不验证就不让退出"',prereqs:['m5','m3'],
+ intuition:[
+  '四阶段方法如果只写进系统提示词，会遇到模块 03 说过的问题：模型可以不听。所以实现上用了两条腿——系统提示词给出解题方式的指导，同时上 `PreCompletionChecklistMiddleware`。',
+  '这个 middleware 的行为很直接：**在 agent 准备退出前拦截它，强制走一遍验证**。想收工？先把 checklist 过了。',
+  '文章顺带提到了一个社区里流传的名字：**Ralph Wiggum Loop**——在退出前强制继续执行的钩子。名字是玩笑，机制是认真的：模型对"我做完了"的判断系统性偏乐观，所以这个判断不能由它单方面说了算。',
+  '还有一句容易被略过但很有分量的总结：**确定性的上下文注入有助于验证**。不是"提醒它验证"，是在它必然会经过的那个时刻，把该有的东西塞进去。'
+ ],
+ diagram:'<div class="row"><div class="bx">agent 认为完成</div><span class="ar">→</span><div class="bx bd" style="min-width:auto">✋ 拦截</div><span class="ar">→</span><div class="bx on">强制验证 checklist</div><span class="ar">→</span><div class="col"><div class="bx gd" style="min-width:auto">通过 → 退出</div><div class="bx bd" style="min-width:auto">未过 → 回到修复</div></div></div>',
+ diagcap:'"我做完了"这个判断被从模型手里拿走了一半——它可以提议退出，但不能自己批准。',
+ analogy:'完全是 pre-commit hook / merge gate 的形状。团队规范里写一百遍"提交前跑测试"，不如 CI 上一个必过的 required check。人和模型在这件事上的行为特征是一样的：都会在自认为完成时高估完成度。',
+ miss:{t:'觉得 Ralph Wiggum Loop 这种"强行不让它停"的做法很粗暴，应该靠更好的提示词解决。',a:'粗暴恰恰是它有效的原因。模型对完成度的判断存在系统性乐观偏差，而系统性偏差不能靠请求对方注意来消除——只能靠把决定权从它手里拿走一部分。'},
+ keys:['系统提示词 + middleware 双管：一个给方法，一个给强制力。',
+       'PreCompletionChecklistMiddleware 在退出前拦截，强制验证。',
+       'Ralph Wiggum Loop：退出前强制继续执行的钩子。',
+       '确定性上下文注入 > 提醒模型自觉验证。'],
+ quiz:[
+  {q:'PreCompletionChecklistMiddleware 的作用时机是：',o:['agent 启动时','每次工具调用后','agent 准备退出前，拦截并强制验证','每次文件编辑时'],a:2,e:'把"我做完了"的批准权从模型手里拿走。'},
+  {q:'为什么这类强制钩子比"写在提示词里"更有效？',o:['提示词占用上下文空间','模型对完成度存在系统性乐观偏差，系统性偏差无法靠请求配合消除','钩子的 token 成本更低','提示词无法描述验证步骤'],a:1,e:'这是模块 03「约定 vs 门禁」的具体应用。'}]
+},
+{id:'m7',num:'07',eyebrow:'改进 II',title:'LocalContextMiddleware：先告诉它自己在哪',
+ sub:'很多"推理错误"其实是环境未知',prereqs:['m3'],
+ intuition:[
+  '第二类改进围绕一句总纲：**为上下文工程建立一个好的投递机制**。重点在"投递"——不是让 agent 自己去发现上下文，而是主动把上下文送到它面前。',
+  '`LocalContextMiddleware` 在 agent 启动时运行，做两件事：映射当前工作目录及其父/子结构；用 bash 命令探明工具装了些什么（比如 Python 环境）。',
+  '目的是**减少上下文发现类的错误**，把 agent "onboard" 进这个环境。你可以把它理解成给新人的第一天环境说明——不是不信任他的能力，而是这些信息他靠自己摸索的成本远高于直接给。',
+  '这条改进和模块 01 的 spiky intelligence 完全咬合：探查环境正是那种模型能力凹陷得很深、但工程上填平极其廉价的地方。跑几个 bash 命令的成本，对比 agent 花十几轮工具调用去猜目录结构还猜错的成本。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">无注入<small>agent 自行探索</small></div><span class="ar">→</span><div class="bx bd">十余轮试探<small>路径猜错 · 工具缺失误判</small></div></div><div style="height:12px"></div><div class="row"><div class="bx on">LocalContextMiddleware<small>启动时运行</small></div><span class="ar">→</span><div class="bx">目录结构 + 工具清单</div><span class="ar">→</span><div class="bx gd">直接进入任务</div></div>',
+ diagcap:'成本对比是这条改进的全部论证：几个 bash 命令 vs 十几轮猜错的工具调用。',
+ analogy:'就是给新人准备的那份 README 里最实用的部分——"仓库长这样、依赖这样装、这几个命令能跑起来"。不写，每个新人都要自己趟一遍，还都趟得不一样。Agent 没有第二天，它每次都是新人。',
+ miss:{t:'认为强模型应该能自己探索出环境，注入上下文是多此一举。',a:'这正是 spiky intelligence 的典型齿谷：能力强不代表每个环节都强，而"自己探索"的失败成本（十几轮无效工具调用、路径猜错）远高于启动时跑几个 bash 命令。这里比的是成本，不是能不能。'},
+ keys:['总纲：为上下文工程建立好的投递机制——主动送达而非等待发现。',
+       'LocalContextMiddleware 在启动时映射目录结构并探明已安装工具。',
+       '目标是减少上下文发现类错误，把 agent onboard 进环境。',
+       '论证基础是成本对比，不是能力质疑。'],
+ quiz:[
+  {q:'LocalContextMiddleware 的运行时机与内容是：',o:['退出前，检查文件完整性','启动时，映射目录结构并探明已安装工具','每次编辑后，刷新文件树','验证阶段，比对规格'],a:1,e:'onboarding 性质的一次性注入。'},
+  {q:'"为上下文工程建立好的投递机制"强调的是：',o:['压缩上下文以节省 token','主动把上下文送到 agent 面前，而不是让它自己发现','用向量检索按需召回上下文','让 agent 自行决定需要什么上下文'],a:1,e:'delivery mechanism —— 投递，不是等待发现。'}]
+},
+{id:'m8',num:'08',eyebrow:'改进 II',title:'教 agent 写可测代码，以及时间预算',
+ sub:'两个小改动，各自对准一个具体的坏习惯',prereqs:['m7'],
+ intuition:[
+  '这里是同一类改进下的两个具体动作，都很小，但逻辑值得看。',
+  '**教 agent 写可测的代码**：明确告诉它，工作会被程序化的测试衡量；在提示词里强调边缘情况处理；强制严格遵守文件路径。策略被概括为「让模型符合测试标准，以避免 slop buildup（劣质产出堆积）」。核心是**把评判标准前置告知**——agent 知道会被怎么测，写出来的东西才是可测的。文件路径那条尤其现实：测试脚本按固定路径找文件，agent 随手放错地方，功能对了也判失败。',
+  '**时间预算**：注入时间预算警告，推动 agent 把任务做完，并促使它进入验证阶段。理由说得很直白——**模型不擅长估计时间**，所以它需要来自环境的约束。',
+  '这两条合起来揭示了一个模式：模型缺失的往往不是能力，而是**关于自身处境的信息**——我会被怎么评判、我还剩多少时间。这类信息模型无法内省得到，只能由 harness 注入。'
+ ],
+ diagram:'<div class="row"><div class="bx on">前置告知评判标准<small>会被程序化测试</small></div><span class="ar">→</span><div class="bx gd">写出可测的代码</div></div><div style="height:10px"></div><div class="row"><div class="bx on">注入时间预算<small>模型不会估时间</small></div><span class="ar">→</span><div class="bx gd">推向收尾与验证</div></div><div style="height:12px"></div><div class="row"><div style="font-size:12.5px;color:var(--dim)">共同点：注入的都不是能力，是<strong style="color:var(--sig)">关于自身处境的信息</strong></div></div>',
+ diagcap:'"我会被怎么评判"和"我还剩多少时间"，模型都无法通过内省获得。',
+ analogy:'和你在 ticket 里写清验收标准是一回事——工程师知道 QA 会怎么测，交付形态就不一样。时间预算则像 sprint 剩余时间的看板：不是不信任对方的判断力，而是这个信息本来就不在他视野里。',
+ miss:{t:'把"强制严格文件路径"当成无关紧要的格式洁癖。',a:'在程序化评测里它是硬失败点：测试脚本按固定路径找产物，放错位置就是零分，无论逻辑多正确。这类"实现正确但交付形态错误"的失败，在 trace 里看起来会像能力问题，实际是约定问题。'},
+ keys:['前置告知评判方式（会被程序化测试、注意边缘情况、严格文件路径）。',
+       '目的是避免 slop buildup——劣质产出的堆积。',
+       '注入时间预算，因为模型不擅长估计时间，需要环境提供约束。',
+       '共同模式：注入的是"关于自身处境的信息"，而非能力。'],
+ quiz:[
+  {q:'注入时间预算的理由是：',o:['降低推理成本','模型不擅长估计时间，需要来自环境的约束，以推动收尾与验证','防止上下文溢出','便于统计延迟指标'],a:1,e:'时间感知是模型无法内省得到的外部信息。'},
+  {q:'"强制严格文件路径"为什么重要？',o:['便于代码审查','程序化测试按固定路径找产物，放错即判失败，与逻辑正确与否无关','减少磁盘占用','避免路径遍历漏洞'],a:1,e:'这类失败在 trace 里像能力问题，实为约定问题。'}]
+},
+{id:'m9',num:'09',eyebrow:'改进 III',title:'LoopDetectionMiddleware：从 doom loop 里捞出来',
+ sub:'检测坏模式，而不是等模型自己醒过来',prereqs:['m3'],
+ intuition:[
+  '第三个失败模式：agent 会陷入短视的 **doom loop**——用同一个已经被证明行不通的思路，反复迭代十几次。人在调试时也会这样，区别是人通常会在某个时刻烦躁地停下来说"等等，我是不是方向错了"，而 agent 不会自发产生这个转折。',
+  '`LoopDetectionMiddleware` 的做法朴素而有效：通过工具调用钩子**统计每个文件被编辑的次数**，超过 N 次后注入一段上下文提示，比如"考虑重新审视你的方案"。',
+  '注意它的分寸——它**只是注入提示，模型可以选择无视**。这不是硬拦截。设计者显然认为"要不要换思路"这个判断本身还是该由模型做，middleware 只负责创造那个反思的时刻。对比模块 06 的退出拦截（硬）和这里的循环提示（软），可以看出强制力是按场景分配的。',
+  '文章紧接着给了一句设计哲学，值得单独记：**围绕今天模型的局限做工程，同时为将来的进步做打算——这些护栏预期会变得不必要**。这是全篇少见的自我否定式表述，也是判断一个 harness 组件成熟度的好尺子。'
+ ],
+ diagram:'<div class="row"><div class="bx bd">编辑 file.py ×1</div><span class="ar">→</span><div class="bx bd">×2 … ×N</div><span class="ar">→</span><div class="bx on">注入提示<small>"考虑重新审视方案"</small></div><span class="ar">→</span><div class="col"><div class="bx gd" style="min-width:auto">换思路</div><div class="bx" style="min-width:auto">或继续（可无视）</div></div></div>',
+ diagcap:'软性干预：middleware 负责制造反思的时刻，判断仍归模型。对比 06 的硬拦截，强制力按场景分配。',
+ analogy:'很像结对编程里那个在旁边看了半天、终于开口说"要不我们先回去看看需求"的人。他不夺键盘，只是打断那个越钻越深的节奏。也像给重试逻辑加退避与上限——盲目重试的根因往往不在重试本身，而在没人叫停。',
+ miss:{t:'认为既然检测到了坏模式，就该硬性阻止 agent 继续编辑该文件。',a:'实现上只是注入提示，模型可以覆盖。"要不要换方案"是需要具体判断的决策，硬拦截会误伤那些确实需要多次编辑的合法场景。硬拦截留给"是否允许退出"这种偏差方向单一的判断。'},
+ keys:['Doom loop：对同一个失败思路做 10+ 次迭代。',
+       'LoopDetectionMiddleware 按文件统计编辑次数，超阈值注入反思提示。',
+       '软干预：模型可以无视——强制力按场景分配。',
+       '设计哲学：围绕今日局限做工程，并预期这些护栏将来会变得不必要。'],
+ quiz:[
+  {q:'LoopDetectionMiddleware 的检测信号是：',o:['token 消耗速率','单个文件的累计编辑次数','工具调用的总轮数','测试失败的连续次数'],a:1,e:'按文件统计编辑次数，超阈值后注入提示。'},
+  {q:'它采用"注入提示、可被模型无视"而非硬拦截，原因是：',o:['实现更简单','"要不要换方案"需要具体判断，硬拦截会误伤合法的多次编辑场景','避免增加延迟','模型不支持中断'],a:1,e:'对比 06 的退出拦截：偏差方向单一的判断才适合硬门禁。'},
+  {q:'"这些护栏预期会变得不必要"这句设计哲学的实践含义是：',o:['现在就不该加护栏','护栏应绑定具体的模型局限，并随模型演进被重新评估和移除','护栏应该永久保留以防回退','应该等模型成熟后再做 harness'],a:1,e:'把组件与它所针对的局限绑定，才知道什么时候该退役。'}]
+},
+{id:'m10',num:'10',eyebrow:'改进 IV',title:'推理三明治：算力该花在哪个阶段',
+ sub:'全文最可直接复制的一招',prereqs:['m5'],
+ intuition:[
+  '推理模型可以自主运行数小时，于是产生一个新的权衡：推理深度 vs 超时约束。GPT-5.2-Codex 有四档推理档位：Low、Medium、High、XHigh。',
+  '朴素直觉是"越高越好"，但数据打脸了：**全程 XHigh 只得 53.9%，因为超时**；全程 High 反而拿到 63.6%。多推理确实提升评测表现，但要烧掉 2 倍以上的 token 和时间——在有超时限制的评测里，这个代价会直接吃掉收益。',
+  '关键发现是：**推理对规划和验证两个阶段的收益最大**。既然收益分布不均，算力就不该均匀分配。',
+  '于是有了 **reasoning sandwich（推理三明治）**：规划用 XHigh，实现用 High，验证用 XHigh。分数 **66.5%**——比全程 High 高 2.9 个点，比全程 XHigh 高 12.6 个点。',
+  '未来方向提了两个：自适应推理（Claude、Gemini 等由模型自行决定算力投入），以及多模型 harness——大模型做规划、小模型做实现，之间做交接。'
+ ],
+ diagram:'<div class="row"><div class="bx on">规划<small>XHigh</small></div><span class="ar">→</span><div class="bx">实现<small>High</small></div><span class="ar">→</span><div class="bx on">验证<small>XHigh</small></div></div><div style="height:16px"></div><div class="sb"><span class="nm">全程 XHigh</span><span class="tr"><i class="mut" style="width:53.9%"></i></span><span class="vl">53.9</span></div><div class="sb"><span class="nm">全程 High</span><span class="tr"><i class="mut" style="width:63.6%"></i></span><span class="vl">63.6</span></div><div class="sb"><span class="nm">推理三明治</span><span class="tr"><i style="width:66.5%"></i></span><span class="vl">66.5</span></div>',
+ diagcap:'全程最高档反而垫底——超时把收益全吃掉了。中间那段刻意降档，是为了给两端留出预算。',
+ analogy:'和你做性能优化时的取舍一模一样：不会给所有接口都上最重的缓存和最全的校验，而是找出真正在关键路径上的那两段重点投入。全程 XHigh 就是无差别地给所有查询加最大重试和最长超时——单看每个决策都"更稳"，合起来把 SLA 撑爆了。',
+ miss:{t:'认为推理档位越高，评测分数越高。',a:'53.9 vs 63.6：全程 XHigh 因为超时反而低了近 10 个点。有约束条件时，局部最优的堆叠会导致全局劣化。正确做法是按阶段收益差异分配预算。'},
+ table:{h:['策略','规划','实现','验证','分数'],r:[
+  ['全程 XHigh','XHigh','XHigh','XHigh','<span class="num">53.9</span>（超时）'],
+  ['全程 High','High','High','High','<span class="num">63.6</span>'],
+  ['推理三明治','XHigh','High','XHigh','<span class="num">66.5</span>']]},
+ keys:['四档推理：Low / Medium / High / XHigh；更多推理烧 2 倍以上 token 与时间。',
+       '推理收益集中在规划与验证阶段，实现阶段边际收益低。',
+       '三明治策略：XHigh 规划 → High 实现 → XHigh 验证 = 66.5%。',
+       '全程 XHigh 因超时仅 53.9%，低于全程 High 的 63.6%。',
+       '未来方向：自适应推理、多模型交接（大模型规划 / 小模型实现）。'],
+ quiz:[
+  {q:'全程 XHigh 只得 53.9% 的原因是：',o:['推理过深导致过拟合','超时——推理烧掉 2 倍以上时间，在时限内跑不完','XHigh 档位存在实现缺陷','验证阶段不需要高推理'],a:1,e:'有约束条件时，处处最优反而全局劣化。'},
+  {q:'推理三明治的配置是：',o:['High 规划 → XHigh 实现 → High 验证','XHigh 规划 → High 实现 → XHigh 验证','Medium 规划 → XHigh 实现 → Low 验证','全程 High，仅验证用 XHigh'],a:1,e:'算力压在收益最高的两端：规划与验证。'},
+  {q:'三明治策略成立的前提性发现是：',o:['推理成本随档位线性增长','推理收益在不同阶段分布不均，规划与验证受益最大','实现阶段最容易出错','模型可自适应决定推理量'],a:1,e:'收益分布不均，才有差异化分配的必要。'}]
+},
+{id:'m11',num:'11',eyebrow:'收束',title:'五条实践原则',
+ sub:'把整篇文章压成可执行的清单',prereqs:['m6','m8','m9','m10'],
+ intuition:[
+  '文章末尾给了五条原则，基本是前面每一块的浓缩。',
+  '**一、替 agent 做上下文工程。** 上下文组装对 agent 来说仍然很难，所以直接注入：目录结构、可用工具、编码最佳实践、解题策略。目的是缩小搜索与规划的出错面。',
+  '**二、帮 agent 自我验证。** 模型偏向第一个看似合理的解，所以要**激进地**提示测试与精化。原文强调这对"无人监督的自主编码"是关键——没有人在旁边看的时候，自验证就是唯一的质量闸门。',
+  '**三、把 trace 当作反馈信号。** Trace 让 agent 能自我评估和调试。这里有一句很实在的补充：**要把工具和推理放在一起调试**，因为糟糕的执行路径往往源于缺失的工具或指令，而不是推理能力不足。',
+  '**四、短期检测并修复坏模式。** 围绕今天的短板做设计，同时为更聪明的模型做打算。举例是盲目重试、未经验证的工作。护栏预期会随模型进步而消解。',
+  '**五、针对模型定制 harness。** 不同模型（Codex、Claude）需要不同的提示策略。给了一个具体数字：**Claude Opus 4.6 在早期版本的 harness 上得 59.6%**——有竞争力，但低于 Codex。结论是原则可以泛化，但每个模型都得重新迭代。',
+  '第五条其实是对前四条的一个重要限定：这套 harness 的**具体配置**不可移植，可移植的是方法论。'
+ ],
+ diagram:'<div class="row"><div class="bx on">1 替它做上下文工程</div><div class="bx on">2 帮它自我验证</div></div><div class="row" style="margin-top:9px"><div class="bx on">3 trace 作反馈信号</div><div class="bx on">4 短期修坏模式</div></div><div class="row" style="margin-top:9px"><div class="bx" style="border-color:var(--warn);color:var(--warn)">5 按模型定制 —— 前四条的限定条件</div></div>',
+ diagcap:'第五条不是并列的第五点，它规定了前四条的适用边界：方法论可移植，配置不可移植。',
+ analogy:'类似性能调优参数不能跨环境照搬：方法（压测、找瓶颈、逐项验证）到哪都适用，但具体的线程池大小、GC 参数换一台机器就得重调。照抄别人的配置文件是最常见的错误，照抄别人的调优方法则总是对的。',
+ miss:{t:'把这套 harness 配置当作可以直接搬到自己项目、自己模型上的最佳实践。',a:'第五条明确否定了这一点：Opus 4.6 在同一套 harness 上是 59.6%，不同模型需要不同的提示策略。可移植的是"用 trace 找失败模式 → 针对性改 harness → 验证"这个循环。'},
+ keys:['五条：替它做上下文工程 / 帮它自我验证 / trace 作反馈 / 短期修坏模式 / 按模型定制。',
+       '调试时要把工具与推理一起看——坏路径常源于缺工具而非缺智力。',
+       '自我验证在无人监督的自主编码中是唯一的质量闸门。',
+       'Opus 4.6 在早期 harness 上得 59.6%，证明配置不可跨模型移植。',
+       '可移植的是方法论循环，不是配置。'],
+ quiz:[
+  {q:'"把工具和推理一起调试"这条建议的依据是：',o:['工具调用消耗大量 token','糟糕的执行路径常源于缺失的工具或指令，而非推理能力不足','推理过程无法单独观测','工具错误会污染上下文'],a:1,e:'诊断时容易把"没工具可用"误判成"想不明白"。'},
+  {q:'Claude Opus 4.6 在早期 harness 上得 59.6% 这个数据说明：',o:['Claude 弱于 Codex','harness 的具体配置不可跨模型移植，需按模型重新迭代','该 harness 设计有缺陷','评测基准对 Claude 不公平'],a:1,e:'原文措辞是有竞争力但低于 Codex，结论指向定制而非优劣。'}]
+},
+{id:'m12',num:'12',eyebrow:'展望',title:'开放问题与社区贡献',
+ sub:'作者自己认为还没解决的部分',prereqs:['m11'],
+ intuition:[
+  '文章最后列了几个开放方向，值得知道边界在哪。',
+  '**多模型系统**：把 Codex、Gemini、Claude 组合起来。这和模块 10 结尾提到的"大模型规划 + 小模型实现 + 交接"是同一条线索的延伸。',
+  '**记忆原语**：让 agent 能持续自主学习。注意这和模块 05 的自我验证形成对照——自我验证的反馈闭环发生在**单次运行内**，而记忆要解决的是**跨运行**的积累。这是当前 harness 明确没覆盖的一块。',
+  '**跨模型族衡量 harness 改动**：也就是第五条原则留下的那个尾巴——怎么知道一个改动是对模型 A 的特化，还是普适的改进。',
+  '方法上提到 **RLM（Reinforcement Learning Models）** 用于更高效地挖掘 trace。',
+  '社区侧做了两件实在事：**公开了实验的 trace 数据集**，以及 **Deep Agents 保持开源**（Python 与 JavaScript 双版本）。公开 trace 这件事和全文方法论是自洽的——既然主张 trace 是核心反馈信号，那把它开放出来就是最有分量的贡献形式。全文结语是 "To more hill climbing and open research"。'
+ ],
+ diagram:'<div class="row"><div class="bx">单次运行内<small>自我验证闭环 ✓ 已解决</small></div><span class="ar">vs</span><div class="bx bd">跨运行<small>记忆原语 · 开放问题</small></div></div><div style="height:12px"></div><div class="row"><div class="bx on">开放 trace 数据集</div><div class="bx on">Deep Agents 开源<small>Python + JavaScript</small></div></div>',
+ diagcap:'把这两格对照着记：本文解决的是运行内的反馈，运行间的积累仍是空白。',
+ analogy:'相当于一个服务有了完善的请求内重试与降级，但还没有跨请求的学习能力——每次都从零开始判断。可观测性数据（trace）已经存下来了，但还没有形成自动回灌到系统行为的闭环。',
+ miss:{t:'把"自我验证"当成 agent 已经具备持续学习能力的证据。',a:'两者的时间尺度完全不同：自我验证是单次运行内的反馈闭环，跨运行的经验积累需要记忆原语，而文章把它列为尚未解决的开放问题。'},
+ keys:['开放方向：多模型系统、记忆原语（跨运行学习）、跨模型族衡量 harness 改动。',
+       '方法探索：用 RLM 更高效地挖掘 trace。',
+       '自我验证解决运行内反馈，记忆解决运行间积累——后者仍是空白。',
+       '公开了 trace 数据集；Deep Agents 开源（Python / JavaScript）。'],
+ quiz:[
+  {q:'"记忆原语"要解决的问题，与自我验证的区别在于：',o:['记忆用于压缩上下文，自验证用于纠错','自我验证是单次运行内的反馈闭环，记忆解决跨运行的经验积累','记忆只对多模型系统有意义','两者本质相同，只是实现层次不同'],a:1,e:'时间尺度不同，文中把跨运行学习列为未解决的开放问题。'},
+  {q:'公开 trace 数据集这一举动，与全文方法论的关系是：',o:['无关，只是常规的开源实践','自洽——既主张 trace 是核心反馈信号，开放它就是最有分量的贡献','为了吸引更多模型厂商合作','为了证明评测结果未造假'],a:1,e:'方法论主张什么，就贡献什么。'}]
+},
+{id:'m13',num:'13',eyebrow:'综合',title:'把三个 middleware 摆在一起看',
+ sub:'干预时机、强制力、所对准的凹陷',prereqs:['m6','m7','m9'],
+ intuition:[
+  '前面分散介绍的三个 middleware，放在一张表里对照才能看出设计上的规律。',
+  '三者的**挂载时机**恰好是 agent 生命周期的三个不同点：启动时（LocalContext）、每次工具调用时（LoopDetection）、退出前（PreCompletionChecklist）。这不是巧合——它们覆盖了 harness 能够确定性介入的全部关键时刻。',
+  '**强制力是按偏差方向分配的**。「是否可以退出」这个判断，模型的偏差方向单一且稳定（总是偏乐观），所以用硬拦截。「是否该换方案」的正确答案依情况而定，硬拦截会误伤，所以只做软提示。「环境是什么样」根本不涉及判断，直接注入事实即可。',
+  '每个组件也都对准了一个具体的能力凹陷，这让模块 09 那句"护栏将来会变得不必要"变得可操作：当模型不再有这个凹陷时，对应的组件就该被拿掉。**组件与它所针对的缺陷绑定，才知道什么时候该退役。**'
+ ],
+ diagram:'<div class="row"><div class="bx on">启动<small>LocalContext<br>注入事实</small></div><span class="ar">→</span><div class="bx on">每次工具调用<small>LoopDetection<br>软提示</small></div><span class="ar">→</span><div class="bx on">退出前<small>PreCompletionChecklist<br>硬拦截</small></div></div>',
+ diagcap:'三个挂载点覆盖了 agent 生命周期中 harness 可确定性介入的全部时刻。',
+ analogy:'对应到你熟悉的三层：启动时的环境注入是容器的 env 与 configmap；工具调用时的循环检测是运行时的熔断与退避；退出前的检查是 CI 的 required check。强制力递增，介入时机递后，这个梯度是设计出来的。',
+ miss:{t:'认为强制力越强的 middleware 越好，都该做成硬拦截。',a:'强制力应当匹配偏差的方向性。偏差方向单一稳定（如总是过早认为完成）适合硬门禁；正确答案依情况而定的（如是否换方案）只能软提示，否则误伤合法路径。'},
+ table:{h:['组件','时机','强制力','对准的凹陷'],r:[
+  ['LocalContextMiddleware','启动时','注入事实','不了解所处环境'],
+  ['LoopDetectionMiddleware','每次工具调用','软提示（可无视）','陷入 doom loop 不自知'],
+  ['PreCompletionChecklistMiddleware','退出前','硬拦截','对完成度系统性乐观']]},
+ keys:['三个挂载点：启动 / 每次工具调用 / 退出前。',
+       '强制力按偏差方向性分配：方向单一 → 硬拦截；依情况而定 → 软提示；无关判断 → 直接注入。',
+       '每个组件绑定一个具体的能力凹陷，这决定了它何时该退役。',
+       '与模块 09 的设计哲学呼应：护栏应随模型进步被重新评估。'],
+ quiz:[
+  {q:'为什么"是否可以退出"适合硬拦截，而"是否该换方案"只适合软提示？',o:['前者实现更简单','前者模型的偏差方向单一稳定（总是偏乐观），后者正确答案依情况而定，硬拦截会误伤','前者的判断成本更低','后者无法被检测'],a:1,e:'强制力应匹配偏差的方向性，这是三个组件设计上的共同规律。'},
+  {q:'"组件与它所针对的缺陷绑定"这一做法的直接好处是：',o:['便于代码复用','当模型不再有该缺陷时，知道该组件可以退役','降低运行时开销','便于跨模型移植'],a:1,e:'让"护栏会变得不必要"从一句展望变成可操作的判据。'}]
+}
+];
+
+var FEY=[
+{id:'f1',t:'解释"harness 要塑造 spiky intelligence"',
+ p:'同事说："模型这么强了，还搞什么 harness，等下一代模型就都解决了。" 请回应他。',
+ c:['解释 spiky：能力分布不均，强项很强、凹陷很深，且凹陷常在琐碎处','说明 harness 针对具体凹陷而非整体水位——这是训练做不到的粒度','用环境探查或时间估计举一个具体凹陷的例子','承认部分护栏确实会随模型进步失效，并说明因此要把组件与缺陷绑定','点出实验固定模型、只改 harness 拿到 13.7 个点，说明这是独立的优化维度']},
+{id:'f2',t:'提示词与 middleware 该怎么选',
+ p:'团队想让 agent 提交前必须跑测试。有人主张写进系统提示词，有人主张做成钩子。你怎么定？',
+ c:['区分柔性（可被忽略）与确定性（无条件执行）','指出模型对完成度存在系统性乐观偏差，系统性偏差无法靠请求配合消除','引 PreCompletionChecklistMiddleware：退出前拦截强制验证','补充反例：LoopDetection 只做软提示，因为"是否换方案"依情况而定','总结判据：偏差方向单一稳定 → 硬门禁；依情况而定 → 软提示']},
+{id:'f3',t:'讲清 build & self-verify 的四个阶段',
+ p:'新同事问："让 agent 自己跑一下测试，不就是自我验证了吗？"',
+ c:['列出四阶段：规划探查 → 构建 → 验证 → 修复','强调验证计划要在动手之前建立，不是事后补','点出最关键的约束：对照规格而非对照自己的实现','解释为什么对照自身实现是同义反复，永远为真','说明反馈闭环发生在单次运行内，这正是它便宜且可规模化的原因']},
+{id:'f4',t:'为什么全程最高推理档反而更差',
+ p:'老板说："算力不是问题，全部开最高档不就行了？"',
+ c:['给数字：全程 XHigh 53.9，全程 High 63.6，三明治 66.5','解释根因是超时——推理烧掉 2 倍以上 token 与时间','指出推理收益分布不均，集中在规划与验证阶段','说明三明治配置：XHigh 规划 / High 实现 / XHigh 验证','抽象出一般原则：有约束条件时，局部最优的堆叠会导致全局劣化']},
+{id:'f5',t:'trace 驱动的改进循环怎么跑',
+ p:'你要在自己团队落地这套方法。请描述完整流程，以及你会怎么防止它跑偏。',
+ c:['前提：trace 必须被系统性存储且可查询（LangSmith 那一层不可省）','流程：拉 trace → 并行分析 agent → 主 agent 综合 → 针对性改动 → 人工复核','说明并行/集中的分工依据：归类可并行，根因综合需要全局视野','指出 boosting 类比与随之而来的过拟合风险','给出对冲手段：人工复核、跨任务验证、警惕针对单一任务的特化']},
+{id:'f6',t:'这套 harness 能直接搬到我们的模型上吗',
+ p:'同事拿着这篇文章说："照着配一遍，我们的 agent 也能到 66.5。" 请给出你的判断。',
+ c:['引第五条原则：不同模型需要不同提示策略','给数字：Opus 4.6 在早期 harness 上 59.6%，有竞争力但不同','区分可移植的（方法论循环）与不可移植的（具体配置）','提醒评测基准不同，分数本身不可直接比较','给出落地建议：先建 trace 基础设施，再按自己的失败模式迭代']}
+];
+
+var EXAM=[
+{tag:'m10',q:'你的 agent 在有超时限制的任务上全程使用最高推理档，分数反而低于中档。最合理的调整是：',o:['降低所有阶段的推理档位','按阶段差异化分配：规划与验证用高档，实现用中档','增加超时时限','换用更小的模型'],a:1,e:'推理三明治：66.5% vs 全程 High 63.6% vs 全程 XHigh 53.9%。'},
+{tag:'m6',q:'Agent 总是在没跑测试的情况下就宣告完成。最有效的对策是：',o:['在系统提示词里加粗强调"必须测试"','加一个退出前拦截的 middleware，强制走验证 checklist','增加 agent 的推理档位','缩短单次任务的时间预算'],a:1,e:'系统性乐观偏差不能靠请求配合消除，只能靠拿走一部分决定权。'},
+{tag:'m1',q:'"spiky intelligence" 对 harness 设计的直接指导意义是：',o:['应该整体提升模型能力','应该针对具体的能力凹陷设计组件，而非泛泛增强','应该减少工具数量以降低复杂度','应该优先优化 token 效率'],a:1,e:'锯齿状分布意味着精确对准齿谷比整体加压更有效。'},
+{tag:'m5',q:'Agent 写完代码后跑了自己写的测试，全绿，但提交后被评测判为失败。最可能的问题是：',o:['测试框架版本不兼容','验证时对照的是自己的实现而非规格，测的是"我做的是不是我做的"','推理档位不足','缺少时间预算'],a:1,e:'必须锚在规格上，否则自验证是同义反复。'},
+{tag:'m9',q:'Agent 对同一个文件做了十几次编辑仍未解决问题。按文中做法应当：',o:['硬性禁止继续编辑该文件','统计编辑次数，超阈值后注入"考虑重新审视方案"的提示（可被无视）','直接终止任务','切换到更高推理档位'],a:1,e:'"是否换方案"依情况而定，硬拦截会误伤合法的多次编辑。'},
+{tag:'m4',q:'你要把"分析失败并改进 harness"做成可重复流程。最贴近文中设计的是：',o:['单个 agent 顺序读完所有 trace 后给建议','并行派生分析 agent 做归类，再由主 agent 综合根因，最后人工复核','让 agent 在运行中实时自我修正 harness','按任务类型分别训练专用模型'],a:1,e:'归类可并行、根因综合需要全局视野，两者性质不同。'},
+{tag:'m7',q:'Trace 显示 agent 开局要花十几轮工具调用去摸索目录结构。最经济的修法是：',o:['提高推理档位改善规划能力','在启动时用 middleware 注入目录结构与已安装工具清单','给它更多时间预算','减少任务复杂度'],a:1,e:'几个 bash 命令 vs 十几轮猜错的调用——这是成本对比，不是能力质疑。'},
+{tag:'m3',q:'关于系统提示词与 middleware 的区别，最准确的是：',o:['middleware 只是提示词的一种实现，效果等价','提示词柔性可被忽略，middleware 在固定时机确定性执行','提示词更适合复杂逻辑，middleware 只能做简单检查','middleware 会显著增加 token 成本'],a:1,e:'"约定 vs 门禁" —— 执行率差值就是增益来源。'},
+{tag:'m11',q:'某个 agent 的执行路径很糟糕。按第三条原则，诊断时应当：',o:['只检查推理链是否合理','把工具与推理一起看——坏路径常源于缺失的工具或指令','先升级模型再排查','增加 trace 采样率'],a:1,e:'容易把"没工具可用"误诊为"想不明白"。'},
+{tag:'m2',q:'实验中把模型固定为 GPT-5.2-Codex 的意义是：',o:['该模型在此基准上最强','让 harness 成为唯一变量，13.7 个点的提升可归因到 harness 侧','便于与其他团队对比','降低实验成本'],a:1,e:'没有控制变量，攀爬结论无从归因。'},
+{tag:'m8',q:'Agent 实现逻辑完全正确，但评测判 0 分。按文中提到的失败点，最可能是：',o:['推理档位不足','产物文件路径不符合要求，程序化测试找不到','时间预算耗尽','缺少边缘情况处理'],a:1,e:'"实现正确但交付形态错误"在 trace 里看起来像能力问题，实为约定问题。'},
+{tag:'m12',q:'关于 agent 的持续学习能力，文中的立场是：',o:['自我验证已经实现了持续学习','自我验证只覆盖单次运行内的反馈，跨运行的记忆原语仍是开放问题','需要重新训练模型才能实现','trace 数据集已经解决了这个问题'],a:1,e:'两者时间尺度不同，跨运行积累被明确列为未解决。'},
+{tag:'m13',q:'你要给一个新的 middleware 决定强制力等级。判断依据应当是：',o:['该行为的出错频率','模型在这件事上的偏差是否方向单一稳定——是则硬拦截，依情况而定则软提示','实现复杂度','对延迟的影响'],a:1,e:'退出判断（偏差单一）用硬拦截，换方案判断（依情况）用软提示。'},
+{tag:'m11',q:'团队想直接照搬这套 harness 配置到自家 Claude 模型上。合理的预期是：',o:['能拿到接近 66.5% 的成绩','需要按模型重新迭代——Opus 4.6 在早期 harness 上是 59.6%，配置不可移植','完全无效，必须从零开始','只有 middleware 部分可以复用'],a:1,e:'可移植的是方法论循环，不是具体配置。'},
+{tag:'m4',q:'trace 驱动改进被类比为 boosting。这个类比同时提醒了什么风险？',o:['计算成本随轮次指数增长','过拟合到具体任务，泛化能力下降并引发回归','trace 数据会过期','需要大量标注数据'],a:1,e:'所以人工复核和跨任务验证是必要的对冲。'},
+{tag:'m5',q:'"自我验证让 agent 自我改进"中，"改进"发生的范围是：',o:['需要跨运行积累','单次运行内的反馈闭环','需要人工每轮介入','仅在多 agent 架构中成立'],a:1,e:'within a run —— 便宜且可规模化的关键。'},
+{tag:'m10',q:'推理三明治为什么在实现阶段刻意降档？',o:['实现阶段的代码质量不重要','推理收益集中在规划与验证，实现阶段边际收益低，降档是为两端留出时间预算','高档位在实现阶段会引入更多 bug','为了兼容更小的模型'],a:1,e:'收益分布不均 → 差异化分配。'},
+{tag:'m13',q:'三个 middleware 的挂载时机分别是：',o:['全部在每次工具调用时','启动时 / 每次工具调用 / 退出前','启动时 / 验证阶段 / 退出前','由模型动态决定'],a:1,e:'覆盖 harness 可确定性介入的三个关键时刻。'}
+];
+
+var CHEAT={
+ tree:[
+  ['失败的根因是不了解环境？','→ 启动时 middleware 注入目录结构 + 工具清单'],
+  ['失败的根因是没验证就交？','→ 退出前硬拦截（PreCompletionChecklist）+ 四阶段方法'],
+  ['失败的根因是反复钻同一个死胡同？','→ 按文件统计编辑次数，超阈值软提示'],
+  ['失败的根因是超时？','→ 差异化推理档位：规划/验证高档，实现降档'],
+  ['失败的根因是交付形态不对？','→ 前置告知评判方式 + 强制文件路径约定'],
+  ['不知道根因？','→ 先建 trace 存储，再跑并行分析 → 综合 → 改动 → 复核']
+ ],
+ qa:[
+  ['harness engineering 的目标是什么？','塑造模型参差不齐（spiky）的智能，针对具体能力凹陷做工程。'],
+  ['可调的有哪几项？','系统提示词（柔性）、工具（能力上界）、middleware（确定性钩子）。'],
+  ['什么时候用 middleware 而非提示词？','模型偏差方向单一稳定时——提示词请求配合，middleware 不请求。'],
+  ['自我验证的关键约束？','验证计划前置；对照规格而非自己的实现；闭环在单次运行内。'],
+  ['推理档位怎么配？','XHigh 规划 → High 实现 → XHigh 验证；全程最高会超时反而更差。'],
+  ['怎么系统性找改进点？','trace → 并行分析 agent → 主 agent 综合 → 针对性改动 → 人工复核。'],
+  ['这套方法的主要风险？','过拟合到具体任务，泛化下降并引发回归（boosting 的固有代价）。'],
+  ['能直接照搬到别的模型吗？','不能。方法论可移植，配置不可——Opus 4.6 同 harness 得 59.6%。'],
+  ['什么时候该删掉一个护栏？','当它所针对的那个模型凹陷消失时——所以组件要与缺陷绑定。'],
+  ['还没解决的是什么？','跨运行的记忆原语、多模型系统、跨模型族衡量改动。']
+ ]
+};
+
+function modQuizStat(m){
+  var tot=0,ok=0;
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i;
+    if(state.answers[k]!==undefined){tot++;if(state.answers[k]===q.a)ok++;}
+  });
+  return {tot:tot,ok:ok,total:m.quiz.length};
+}
+function modStatus(m){
+  var s=modQuizStat(m);
+  if(s.tot===0)return 'none';
+  return (s.ok/s.tot)>=0.7 && s.tot===s.total ? 'master' : 'review';
+}
+function statusIcon(st){
+  if(st==='master')return {c:'st-master',i:'●'};
+  if(st==='review')return {c:'st-review',i:'▲'};
+  return {c:'st-none',i:'○'};
+}
+function byId(id){for(var i=0;i<MODULES.length;i++)if(MODULES[i].id===id)return MODULES[i];return null;}
+function mdb(s){return String(s).replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+var view='home';
+function renderNav(){
+  var h='<div class="navsec">总览</div>';
+  h+='<div class="navitem'+(view==='home'?' active':'')+'" data-v="home" tabindex="0"><span class="ico">▤</span><span class="nvt">学习地图</span></div>';
+  h+='<div class="navsec">模块</div>';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st);
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div class="navitem'+(view===m.id?' active':'')+'" data-v="'+m.id+'" tabindex="0">'+
+       '<span class="ico '+ic.c+'">'+ic.i+'</span>'+
+       '<span class="nvt"><span class="num">'+m.num+'</span> '+esc(m.title)+
+       (pend.length?'<span class="pend">前置未掌握：'+pend.map(function(p){return byId(p).num;}).join(' · ')+'</span>':'')+
+       '</span></div>';
+  });
+  h+='<div class="navsec">练习</div>';
+  h+='<div class="navitem'+(view==='fey'?' active':'')+'" data-v="fey" tabindex="0"><span class="ico">✎</span><span class="nvt">费曼实验室</span></div>';
+  h+='<div class="navitem'+(view==='exam'?' active':'')+'" data-v="exam" tabindex="0"><span class="ico">◆</span><span class="nvt">综合测验</span></div>';
+  h+='<div class="navitem'+(view==='cheat'?' active':'')+'" data-v="cheat" tabindex="0"><span class="ico">▦</span><span class="nvt">速查表</span></div>';
+  var nv=document.getElementById('nav');
+  nv.innerHTML=h;
+  nv.querySelectorAll('.navitem').forEach(function(el){
+    el.onclick=function(){go(el.getAttribute('data-v'));};
+    el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(el.getAttribute('data-v'));}};
+  });
+  var mastered=MODULES.filter(function(m){return modStatus(m)==='master';}).length;
+  var pct=Math.round(mastered/MODULES.length*100);
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='掌握度 '+pct+'%';
+  document.getElementById('pcnt').textContent=mastered+'/'+MODULES.length;
+}
+
+function renderHome(){
+  var h='<div class="eyebrow">LangChain Engineering · Terminal Bench 2.0</div>';
+  h+='<h2 class="vt">Harness Engineering：52.8 → 66.5 的一次可复现攀爬</h2>';
+  h+='<p class="sub">模型固定为 GPT-5.2-Codex，只改 harness，净增 13.7 个点。读完这 13 个模块，你能判断一个 agent 的失败该用哪个旋钮修。</p>';
+  h+='<div class="anchor-note"><strong>关于类比：</strong>本页的类比锚定在<strong>后端 / 基础设施工程</strong>背景（CI 门禁、熔断退避、性能调优、故障复盘）。这是在没有你的背景信息时选定的默认锚点 —— 若不符，告诉我可整体替换成另一套。</div>';
+  h+='<div class="card"><span class="lbl">使用方式</span>按侧栏顺序过模块 → 每模块末尾 2–3 题即时自测（全部作答且正确率 ≥70% 记为已掌握）→ 费曼实验室用自己的话讲一遍 → 18 题综合测验，做完自动定位薄弱模块及其前置。进度自动保存。</div>';
+  h+='<div class="dg"><div class="row"><div class="bx">系统提示词<small>柔性</small></div><div class="bx">工具<small>能力上界</small></div><div class="bx on">Middleware<small>确定性钩子</small></div><span class="ar">→</span><div class="bx gd">+13.7</div></div>'+
+     '<div class="row" style="margin-top:14px"><div class="bx on" style="min-width:auto">启动<small>注入环境</small></div><span class="ar">→</span><div class="bx on" style="min-width:auto">工具调用<small>检测死循环</small></div><span class="ar">→</span><div class="bx on" style="min-width:auto">退出前<small>强制验证</small></div></div>'+
+     '<div class="dg-cap">全文的核心心智模型：把「提示模型自觉去做」的事，改造成「在它必经的时刻确定性地发生」。三个 middleware 覆盖了 agent 生命周期中可介入的全部关键时刻。</div></div>';
+  h+='<h3>模块地图</h3><div class="grid">';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st),s=modQuizStat(m);
+    h+='<div class="mcard" data-v="'+m.id+'" tabindex="0"><div class="mn">'+m.num+' · '+esc(m.eyebrow)+'</div><h4>'+esc(m.title)+'</h4><p>'+esc(m.sub)+'</p><div class="ft"><span>'+
+       (m.prereqs.length?m.prereqs.map(function(p){return '<span class="badge">'+byId(p).num+'</span>';}).join(''):'<span class="badge">基础</span>')+
+       '</span><span class="'+ic.c+'">'+ic.i+' '+(s.tot?s.ok+'/'+s.tot:'未开始')+'</span></div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function renderModule(m){
+  var h='<div class="eyebrow">'+m.num+' · '+esc(m.eyebrow)+'</div><h2 class="vt">'+esc(m.title)+'</h2><p class="sub">'+esc(m.sub)+'</p>';
+  if(m.prereqs.length){
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div style="margin-bottom:20px">'+m.prereqs.map(function(p){return '<span class="badge">前置 '+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join('')+
+       (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:6px">这些前置模块尚未掌握，本模块可能读起来更吃力。</div>':'')+'</div>';
+  }
+  m.intuition.forEach(function(p){h+='<p>'+mdb(p)+'</p>';});
+  h+='<div class="dg">'+m.diagram+'<div class="dg-cap">'+esc(m.diagcap)+'</div></div>';
+  h+='<div class="box-analogy"><span class="lbl">类比锚点 · 后端/基础设施</span>'+m.analogy+'</div>';
+  h+='<div class="box-miss"><div class="mt">✗ 常见误解：'+esc(m.miss.t)+'</div><div class="ma">✓ 实际上：'+esc(m.miss.a)+'</div></div>';
+  if(m.table){
+    h+='<div class="tblwrap"><table><thead><tr>'+m.table.h.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+
+       m.table.r.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+  }
+  h+='<div class="box-key"><span class="lbl">关键要点</span><ul>'+m.keys.map(function(k){return '<li>'+esc(k)+'</li>';}).join('')+'</ul></div>';
+  h+='<div class="hr"></div><h3>即时自测</h3><div id="quiz"></div>';
+  var idx=MODULES.indexOf(m);
+  h+='<div class="btnrow">';
+  if(idx>0)h+='<button class="btn ghost" data-go="'+MODULES[idx-1].id+'">← '+MODULES[idx-1].num+'</button>';
+  if(idx<MODULES.length-1)h+='<button class="btn" data-go="'+MODULES[idx+1].id+'">下一模块 '+MODULES[idx+1].num+' →</button>';
+  else h+='<button class="btn" data-go="fey">进入费曼实验室 →</button>';
+  h+='</div>';
+  return h;
+}
+
+function paintQuiz(m){
+  var box=document.getElementById('quiz');if(!box)return;
+  var h='';
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i, ans=state.answers[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-k="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'正确':'不对')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){
+      state.answers[b.getAttribute('data-k')]=parseInt(b.getAttribute('data-j'),10);
+      save();paintQuiz(m);renderNav();
+    };
+  });
+}
+
+function renderFey(){
+  var h='<div class="eyebrow">Feynman Lab</div><h2 class="vt">费曼实验室</h2><p class="sub">这 6 个点是"感觉懂了、一开口就露馅"的地方，也是面试里最容易被追问的。先写，再展开对照清单。</p>';
+  FEY.forEach(function(f){
+    var d=state.fey[f.id]||{txt:'',r:0};
+    h+='<div class="card"><h3 style="margin-top:0">'+esc(f.t)+'</h3><p style="color:var(--dim);font-size:13.5px">'+esc(f.p)+'</p>'+
+       '<textarea data-f="'+f.id+'" placeholder="用你自己的话讲清楚，别照抄术语…">'+esc(d.txt)+'</textarea>'+
+       '<details><summary>展开对照清单（先写完再看）</summary><ul>'+f.c.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ul></details>'+
+       '<div class="rate"><span>自评：</span>'+[1,2,3,4,5].map(function(n){return '<button data-fr="'+f.id+'" data-n="'+n+'" class="'+(d.r===n?'sel':'')+'">'+n+'</button>';}).join('')+'<span>1=讲不出 · 5=能教别人</span></div></div>';
+  });
+  h+='<div class="btnrow"><button class="btn" data-go="exam">去做综合测验 →</button></div>';
+  return h;
+}
+function bindFey(){
+  document.querySelectorAll('textarea[data-f]').forEach(function(t){
+    t.oninput=function(){
+      var id=t.getAttribute('data-f');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].txt=t.value;save();
+    };
+  });
+  document.querySelectorAll('button[data-fr]').forEach(function(b){
+    b.onclick=function(){
+      var id=b.getAttribute('data-fr');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].r=parseInt(b.getAttribute('data-n'),10);save();go('fey');
+    };
+  });
+}
+
+function renderExam(){
+  return '<div class="eyebrow">Final Exam</div><h2 class="vt">综合测验</h2><p class="sub">18 题，跨模块打散，以情景诊断题为主：给现象，判断该动哪个旋钮。全部作答后自动定位薄弱模块及其前置。</p><div id="exambox"></div>';
+}
+function paintExam(){
+  var box=document.getElementById('exambox');if(!box)return;
+  var h='';
+  EXAM.forEach(function(q,i){
+    var k='e'+i,ans=state.exam[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-ek="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'正确':'不对')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  var done=EXAM.filter(function(q,i){return state.exam['e'+i]!==undefined;}).length;
+  if(done===EXAM.length){
+    var ok=EXAM.filter(function(q,i){return state.exam['e'+i]===q.a;}).length;
+    var pct=Math.round(ok/EXAM.length*100);
+    var verdict=pct>=90?'扎实——可以直接拿去讲了。':pct>=75?'主干很牢，薄弱点集中在下面几块。':pct>=55?'框架抓住了，数字和机制细节需要回炉。':'建议按前置顺序重读一遍再来。';
+    var weakIds=[];
+    EXAM.forEach(function(q,i){if(state.exam['e'+i]!==q.a&&weakIds.indexOf(q.tag)<0)weakIds.push(q.tag);});
+    var wh='';
+    weakIds.forEach(function(id){
+      var m=byId(id);
+      var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+      wh+='<div style="margin-bottom:10px"><span class="wl" data-go="'+m.id+'" tabindex="0">'+m.num+' '+esc(m.title)+'</span>'+
+          (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:3px">先补 '+pend.map(function(p){return '<span class="wl" data-go="'+p+'" tabindex="0">'+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join('、')+'——它是本模块前置且自测尚未达标。</div>':'')+
+          '</div>';
+    });
+    h='<div class="card"><span class="lbl">成绩</span><div class="score">'+pct+'%</div><div style="color:var(--dim)"><span class="num">'+ok+' / '+EXAM.length+'</span> 题正确 · '+verdict+'</div>'+
+      (weakIds.length?'<div class="weak"><span class="lbl">需要回看</span>'+wh+'</div>':'<div class="weak" style="color:var(--good)">全部答对，没有薄弱模块。</div>')+
+      '<div class="btnrow"><button class="btn ghost" id="reexam">清空重做</button><button class="btn" data-go="cheat">去看速查表 →</button></div></div>'+h;
+  }else{
+    h='<div class="card" style="color:var(--dim)">已作答 <span class="num">'+done+'/'+EXAM.length+'</span> —— 全部完成后显示成绩与薄弱模块定位。</div>'+h;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){state.exam[b.getAttribute('data-ek')]=parseInt(b.getAttribute('data-j'),10);save();paintExam();};
+  });
+  var re=document.getElementById('reexam');
+  if(re)re.onclick=function(){state.exam={};save();paintExam();};
+  box.querySelectorAll('[data-go]').forEach(function(el){el.onclick=function(){go(el.getAttribute('data-go'));};});
+}
+
+function renderCheat(){
+  var h='<div class="eyebrow">Cheatsheet</div><h2 class="vt">速查表</h2><p class="sub">无解释，纯密度。诊断时从现象反查该动哪个旋钮。</p>';
+  h+='<h3>从失败现象反查修法</h3><div class="dg">';
+  CHEAT.tree.forEach(function(r){h+='<div class="row" style="margin-bottom:9px"><div class="bx" style="min-width:206px;text-align:left">'+esc(r[0])+'</div><span class="ar">→</span><div style="font-size:13px">'+esc(r[1])+'</div></div>';});
+  h+='</div>';
+  h+='<h3>三个 middleware</h3><div class="tblwrap"><table><thead><tr><th>组件</th><th>时机</th><th>强制力</th><th>对准的凹陷</th></tr></thead><tbody>'+
+   '<tr><td>LocalContext</td><td>启动时</td><td>注入事实</td><td>不了解所处环境</td></tr>'+
+   '<tr><td>LoopDetection</td><td>每次工具调用</td><td>软提示（可无视）</td><td>陷入 doom loop</td></tr>'+
+   '<tr><td>PreCompletionChecklist</td><td>退出前</td><td>硬拦截</td><td>对完成度系统性乐观</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>推理档位配置</h3><div class="tblwrap"><table><thead><tr><th>策略</th><th>规划</th><th>实现</th><th>验证</th><th>分数</th></tr></thead><tbody>'+
+   '<tr><td>全程 XHigh</td><td>XHigh</td><td>XHigh</td><td>XHigh</td><td class="n">53.9（超时）</td></tr>'+
+   '<tr><td>全程 High</td><td>High</td><td>High</td><td>High</td><td class="n">63.6</td></tr>'+
+   '<tr><td><strong>推理三明治</strong></td><td>XHigh</td><td>High</td><td>XHigh</td><td class="n"><strong>66.5</strong></td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>数字速记</h3><div class="tblwrap"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody>'+
+   '<tr><td>基线 → 最终</td><td class="n">52.8 → 66.5（+13.7）</td></tr>'+
+   '<tr><td>Terminal Bench 2.0</td><td class="n">89 个任务 · ML / 调试 / 生物</td></tr>'+
+   '<tr><td>全程 XHigh / High / 三明治</td><td class="n">53.9 / 63.6 / 66.5</td></tr>'+
+   '<tr><td>Opus 4.6（早期 harness）</td><td class="n">59.6</td></tr>'+
+   '<tr><td>高推理的代价</td><td class="n">2× 以上 token 与时间</td></tr>'+
+   '<tr><td>doom loop 判据</td><td class="n">同一思路 10+ 次迭代</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>高频追问与作答角度</h3><div class="tblwrap"><table><thead><tr><th>可能被问</th><th>作答角度</th></tr></thead><tbody>'+
+   CHEAT.qa.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>';}).join('')+'</tbody></table></div>';
+  return h;
+}
+
+function go(v){
+  view=v;
+  var main=document.getElementById('main');
+  if(v==='home')main.innerHTML=renderHome();
+  else if(v==='fey'){main.innerHTML=renderFey();bindFey();}
+  else if(v==='exam'){main.innerHTML=renderExam();paintExam();}
+  else if(v==='cheat')main.innerHTML=renderCheat();
+  else{var m=byId(v);main.innerHTML=renderModule(m);paintQuiz(m);}
+  main.querySelectorAll('[data-v],[data-go]').forEach(function(el){
+    if(el.closest('#exambox'))return;
+    var t=el.getAttribute('data-v')||el.getAttribute('data-go');
+    el.onclick=function(){go(t);};
+    el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(t);}};
+  });
+  renderNav();
+  window.scrollTo(0,0);
+}
+
+detect();
+Promise.resolve(load()).then(function(){
+  if(backend==='memory')document.getElementById('storenote').textContent='⚠ 当前环境无可用存储，进度仅保留在本次会话中。';
+  go('home');
+});
+</script>
+</body></html>
