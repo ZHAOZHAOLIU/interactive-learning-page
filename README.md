@@ -54,7 +54,7 @@ Generated from [an engineering blog post](https://www.langchain.com/blog/improvi
 **Personal (all projects):**
 
 ```bash
-git clone https://github.com/YOUR_NAME/interactive-learning-page.git
+git clone https://github.com/ZHAOZHAOLIU/interactive-learning-page.git
 cd interactive-learning-page
 mkdir -p ~/.claude/skills
 cp -r interactive-learning-page ~/.claude/skills/
