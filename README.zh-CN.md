@@ -54,7 +54,7 @@
 **个人级（所有项目可用）：**
 
 ```bash
-git clone https://github.com/ZHAOZHAOLIU/interactive-learning-page.git
+git clone https://github.com/caroliu1024/interactive-learning-page.git
 cd interactive-learning-page
 mkdir -p ~/.claude/skills
 cp -r interactive-learning-page ~/.claude/skills/
