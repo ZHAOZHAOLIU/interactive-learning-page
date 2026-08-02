@@ -32,16 +32,16 @@
 
 从[一篇工程博客](https://www.langchain.com/blog/improving-deep-agents-with-harness-engineering)单次生成，中文输出：
 
-[![学习地图](assets/demo-home.png)](assets/demo-home.png)
+[![学习地图](assets/demo-zh-home.png)](assets/demo-zh-home.png)
 
 <table>
 <tr>
-<td width="50%"><a href="assets/demo-module.png"><img src="assets/demo-module.png" alt="模块视图"></a><br><sub><b>模块视图</b> —— 直觉先行，然后是结构图、类比锚点、误解提示、对照表、关键要点，最后是即时自测。</sub></td>
-<td width="50%"><a href="assets/demo-exam.png"><img src="assets/demo-exam.png" alt="综合测验"></a><br><sub><b>综合测验</b> —— 出分之外，自动列出薄弱模块，并把你尚未掌握的前置模块挂在下面。</sub></td>
+<td width="50%"><a href="assets/demo-zh-module.png"><img src="assets/demo-zh-module.png" alt="模块视图"></a><br><sub><b>模块视图</b> —— 直觉先行，然后是结构图、类比锚点、误解提示、对照表、关键要点，最后是即时自测。</sub></td>
+<td width="50%"><a href="assets/demo-zh-exam.png"><img src="assets/demo-zh-exam.png" alt="综合测验"></a><br><sub><b>综合测验</b> —— 出分之外，自动列出薄弱模块，并把你尚未掌握的前置模块挂在下面。</sub></td>
 </tr>
 <tr>
-<td width="50%"><a href="assets/demo-cheatsheet.png"><img src="assets/demo-cheatsheet.png" alt="速查表"></a><br><sub><b>速查表</b> —— 没有解释性文字，纯密度。为面试或考试前那五分钟准备。</sub></td>
-<td width="50%"><a href="assets/demo-home-alt.png"><img src="assets/demo-home-alt.png" alt="换一篇源材料，换一套视觉方向"></a><br><sub><b>另一篇源材料</b> —— 视觉方向按主题现推，不套模板。</sub></td>
+<td width="50%"><a href="assets/demo-zh-cheatsheet.png"><img src="assets/demo-zh-cheatsheet.png" alt="速查表"></a><br><sub><b>速查表</b> —— 没有解释性文字，纯密度。为面试或考试前那五分钟准备。</sub></td>
+<td width="50%"><a href="assets/demo-zh-home-alt.png"><img src="assets/demo-zh-home-alt.png" alt="换一篇源材料，换一套视觉方向"></a><br><sub><b>另一篇源材料</b> —— 视觉方向按主题现推，不套模板。</sub></td>
 </tr>
 </table>
 
@@ -196,12 +196,13 @@ cp -r /path/to/interactive-learning-page .claude/skills/
 
 ## 在线示例
 
-两个由本 skill 从真实工程博客生成的页面，均为中文输出：
+三个由本 skill 从真实工程博客生成的完整页面。同一篇源材料出了两种语言，用来说明「输出语言是一个选择，不等于源材料的语言」在实践中是什么意思。
 
-| 源材料 | 模块数 | 页面 |
-|--------|--------|------|
-| [Anthropic — Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps) | 15 | [`examples/anthropic-harness-design.zh-CN.html`](examples/anthropic-harness-design.zh-CN.html) |
-| [LangChain — Improving deep agents with harness engineering](https://www.langchain.com/blog/improving-deep-agents-with-harness-engineering) | 13 | [`examples/langchain-harness-engineering.zh-CN.html`](examples/langchain-harness-engineering.zh-CN.html) |
+| 源材料 | 输出语言 | 模块数 | 页面 |
+|--------|----------|--------|------|
+| [LangChain — Improving deep agents with harness engineering](https://www.langchain.com/blog/improving-deep-agents-with-harness-engineering) | 简体中文 | 13 | [`langchain-harness-engineering.zh-CN.html`](examples/langchain-harness-engineering.zh-CN.html) |
+| [LangChain — Improving deep agents with harness engineering](https://www.langchain.com/blog/improving-deep-agents-with-harness-engineering) | English | 13 | [`langchain-harness-engineering.en.html`](examples/langchain-harness-engineering.en.html) |
+| [Anthropic — Harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps) | 简体中文 | 15 | [`anthropic-harness-design.zh-CN.html`](examples/anthropic-harness-design.zh-CN.html) |
 
 下载任意一个用浏览器打开即可 —— 它们是完全可用的，包括进度保存。
 
@@ -215,7 +216,7 @@ interactive-learning-page/
 ├── README.zh-CN.md                   简体中文（本文件）
 ├── LICENSE                           MIT
 ├── assets/                           README 用到的截图
-├── examples/                         两个完整的生成结果
+├── examples/                         三个完整的生成结果
 └── interactive-learning-page/        ← 把这个文件夹拷进 ~/.claude/skills/
     └── SKILL.md
 ```

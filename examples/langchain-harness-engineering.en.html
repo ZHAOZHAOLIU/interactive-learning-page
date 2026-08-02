@@ -1,0 +1,784 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Harness Engineering in Practice</title></head><body><style>
+:root{
+  --paper:#f2f3f0; --panel:#fbfbfa; --panel2:#e9ebe6; --line:#d3d7cf;
+  --ink:#171b1a; --dim:#5f6a68;
+  --sig:#0e6b62; --sig-soft:rgba(14,107,98,.10);
+  --good:#2f7a4f; --bad:#a33227; --warn:#a06a12;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#121514; --panel:#191d1c; --panel2:#212624; --line:#303735;
+    --ink:#e8eae7; --dim:#96a09d;
+    --sig:#54b8ab; --sig-soft:rgba(84,184,171,.13);
+    --good:#5cbe86; --bad:#e0705f; --warn:#d6a340;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#f2f3f0; --panel:#fbfbfa; --panel2:#e9ebe6; --line:#d3d7cf;
+  --ink:#171b1a; --dim:#5f6a68;
+  --sig:#0e6b62; --sig-soft:rgba(14,107,98,.10);
+  --good:#2f7a4f; --bad:#a33227; --warn:#a06a12;
+}
+:root[data-theme="dark"]{
+  --paper:#121514; --panel:#191d1c; --panel2:#212624; --line:#303735;
+  --ink:#e8eae7; --dim:#96a09d;
+  --sig:#54b8ab; --sig-soft:rgba(84,184,171,.13);
+  --good:#5cbe86; --bad:#e0705f; --warn:#d6a340;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--sig);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+#app{display:flex;min-height:100vh}
+#sidebar{width:276px;flex:0 0 276px;background:var(--panel);border-right:1px solid var(--line);padding:20px 0 44px;position:sticky;top:0;height:100vh;overflow-y:auto}
+#main{flex:1;min-width:0;padding:36px 46px 96px;max-width:840px}
+.brand{padding:0 20px 15px;border-bottom:1px solid var(--line)}
+.brand h1{font-size:14.5px;margin:0 0 3px;font-weight:650;letter-spacing:-.01em}
+.brand p{margin:0;font-size:11.5px;color:var(--dim)}
+.progwrap{padding:14px 20px 15px;border-bottom:1px solid var(--line)}
+.progbar{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.progbar i{display:block;height:100%;background:var(--sig);width:0;transition:width .35s}
+.progmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:7px}
+.navsec{font-size:10.5px;color:var(--dim);padding:14px 20px 5px;letter-spacing:.09em;text-transform:uppercase;font-family:var(--mono)}
+.navitem{display:flex;gap:9px;align-items:flex-start;padding:7px 20px;cursor:pointer;font-size:13px;border-left:2px solid transparent}
+.navitem:hover{background:var(--panel2)}
+.navitem.active{background:var(--sig-soft);border-left-color:var(--sig)}
+.navitem .ico{flex:0 0 14px;font-size:11px;line-height:1.95;text-align:center}
+.navitem .nvt{flex:1;min-width:0}
+.navitem .pend{font-size:10px;color:var(--warn);display:block;line-height:1.45}
+.st-none{color:var(--dim)} .st-review{color:var(--bad)} .st-master{color:var(--good)}
+#storenote{font-size:10.5px;color:var(--warn);padding:9px 20px 0;line-height:1.55}
+
+.eyebrow{font-family:var(--mono);font-size:10.5px;color:var(--sig);letter-spacing:.09em;text-transform:uppercase}
+h2.vt{font-size:27px;margin:8px 0 7px;line-height:1.28;font-weight:650;letter-spacing:-.02em;text-wrap:balance}
+.sub{color:var(--dim);margin:0 0 26px;font-size:14px}
+h3{font-size:15px;margin:32px 0 11px;font-weight:650;text-wrap:balance}
+p{margin:0 0 13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 19px;margin:0 0 16px}
+.anchor-note{border:1px dashed var(--line);border-radius:8px;padding:11px 15px;margin:0 0 18px;font-size:12.5px;color:var(--dim)}
+.box-analogy{border-left:2.5px solid var(--sig);background:var(--sig-soft);border-radius:0 7px 7px 0;padding:13px 17px;margin:17px 0}
+.box-miss{border:1px solid var(--line);border-radius:8px;padding:13px 17px;margin:17px 0;background:var(--panel)}
+.box-miss .mt{color:var(--bad);font-size:12.5px;margin-bottom:6px}
+.box-miss .ma{color:var(--good);font-size:12.5px}
+.box-key{background:var(--panel2);border-radius:8px;padding:15px 19px;margin:19px 0}
+.box-key ul{margin:8px 0 0;padding-left:19px}
+.box-key li{margin-bottom:5px}
+.lbl{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.09em;text-transform:uppercase;display:block;margin-bottom:6px}
+.tblwrap{overflow-x:auto;margin:17px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:430px}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+th{background:var(--panel2);font-weight:650;font-size:12.5px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--panel2);padding:1px 5px;border-radius:3px}
+.badge{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:3px;background:var(--panel2);color:var(--dim);margin-right:5px}
+
+.dg{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:19px;margin:19px 0;overflow-x:auto}
+.dg-cap{font-size:11.5px;color:var(--dim);margin-top:11px;line-height:1.6}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:9px}
+.bx{border:1px solid var(--line);background:var(--panel2);border-radius:5px;padding:9px 12px;font-size:12.5px;min-width:94px;text-align:center}
+.bx.on{border-color:var(--sig);color:var(--sig)}
+.bx.gd{border-color:var(--good);color:var(--good)}
+.bx.bd{border-color:var(--bad);color:var(--bad)}
+.bx small{display:block;color:var(--dim);font-size:10.5px}
+.ar{color:var(--sig);font-family:var(--mono);font-size:14px}
+.sb{display:flex;align-items:center;gap:11px;margin-bottom:8px;font-size:12.5px}
+.sb .nm{flex:0 0 132px;color:var(--dim)}
+.sb .tr{flex:1;height:16px;background:var(--panel2);border-radius:3px;overflow:hidden;min-width:90px}
+.sb .tr i{display:block;height:100%;background:var(--sig)}
+.sb .tr i.mut{background:var(--dim);opacity:.5}
+.sb .vl{flex:0 0 46px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(226px,1fr));gap:12px;margin-top:16px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s}
+.mcard:hover{border-color:var(--sig)}
+.mcard .mn{font-family:var(--mono);font-size:10.5px;color:var(--sig);letter-spacing:.06em}
+.mcard h4{margin:5px 0 6px;font-size:14px;font-weight:650;text-wrap:balance}
+.mcard p{font-size:12px;color:var(--dim);margin:0 0 10px;line-height:1.5}
+.mcard .ft{display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:6px}
+
+.q{margin:17px 0}
+.q .qt{font-weight:650;margin-bottom:9px}
+.opt{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:9px 13px;margin-bottom:7px;cursor:pointer;font-size:13.5px;display:block;width:100%;text-align:left}
+.opt:hover:not(.done){border-color:var(--sig)}
+.opt.ok{border-color:var(--good);background:rgba(47,122,79,.10)}
+.opt.no{border-color:var(--bad);background:rgba(163,50,39,.10)}
+.opt.done{cursor:default}
+.expl{font-size:12.5px;color:var(--dim);border-left:2px solid var(--line);padding-left:12px;margin-top:8px}
+.expl b.ok{color:var(--good)} .expl b.no{color:var(--bad)}
+
+textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:11px;font-family:inherit;font-size:13.5px;min-height:110px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--sig)}
+details{margin-top:10px;background:var(--panel2);border-radius:6px;padding:10px 14px}
+summary{cursor:pointer;font-size:13px;color:var(--sig)}
+details ul{margin:9px 0 0;padding-left:19px;font-size:13px}
+.rate{display:flex;gap:7px;align-items:center;margin-top:12px;font-size:12.5px;color:var(--dim);flex-wrap:wrap}
+.rate button{width:28px;height:28px;border-radius:5px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-family:var(--mono)}
+.rate button.sel{border-color:var(--sig);background:var(--sig-soft);color:var(--sig)}
+.btn{background:var(--sig);color:var(--paper);border:none;border-radius:6px;padding:9px 17px;font-size:13.5px;font-weight:650;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:400}
+.btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+.score{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:42px;color:var(--sig);line-height:1.1}
+.weak{border:1px solid var(--line);border-radius:8px;padding:13px 16px;margin-top:13px;background:var(--panel)}
+.weak .wl{cursor:pointer;color:var(--sig);text-decoration:underline;font-size:13.5px}
+.hr{height:1px;background:var(--line);margin:34px 0}
+@media(max-width:820px){
+  #app{flex-direction:column}
+  #sidebar{width:100%;flex:none;height:auto;position:relative}
+  #main{padding:24px 18px 72px}
+  .sb .nm{flex:0 0 104px}
+}
+</style>
+
+<div id="app">
+  <nav id="sidebar">
+    <div class="brand">
+      <h1>Harness Engineering in Practice</h1>
+      <p>52.8 → 66.5, one reproducible climb</p>
+    </div>
+    <div class="progwrap">
+      <div class="progbar"><i id="pbar"></i></div>
+      <div class="progmeta"><span id="ptext">Mastery 0%</span><span id="pcnt" class="num">0/13</span></div>
+      <div id="storenote"></div>
+    </div>
+    <div id="nav"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+var KEY='deep-agents-harness-en-v1', mem={}, backend='memory', state={answers:{},exam:{},fey:{}};
+function detect(){
+  if(typeof window.storage!=='undefined'&&window.storage){backend='window.storage';return;}
+  try{window.localStorage.setItem('__t','1');window.localStorage.removeItem('__t');backend='localStorage';}
+  catch(e){backend='memory';}
+}
+function rawGet(){
+  try{
+    if(backend==='window.storage')return Promise.resolve(window.storage.getItem(KEY));
+    if(backend==='localStorage')return Promise.resolve(window.localStorage.getItem(KEY));
+  }catch(e){return Promise.resolve(null);}
+  return Promise.resolve(mem[KEY]||null);
+}
+function save(){
+  var v=JSON.stringify(state);
+  try{
+    if(backend==='window.storage'){window.storage.setItem(KEY,v);return;}
+    if(backend==='localStorage'){window.localStorage.setItem(KEY,v);return;}
+  }catch(e){backend='memory';}
+  mem[KEY]=v;
+}
+function load(){return rawGet().then(function(v){
+  if(v){try{var p=JSON.parse(v);state.answers=p.answers||{};state.exam=p.exam||{};state.fey=p.fey||{};}catch(e){}}
+});}
+
+var MODULES=[
+{id:'m1',num:'01',eyebrow:'Definition',title:'A harness shapes spiky intelligence',
+ sub:'The word "spiky" is the foundation of the whole piece',prereqs:[],
+ intuition:[
+  'The article opens with a precise definition: the goal of a harness is to mold the inherently **spiky** intelligence of a model into a shape that works for the tasks you care about.',
+  'That word deserves a pause. "Spiky" is not saying the model is weak on average — it says capability is distributed very unevenly. The same model can write a subtle algorithm brilliantly and then repeatedly fumble something as small as "look at what is actually in this directory first." Your job is not to raise the overall water level (that is what training does). Your job is to fill in the troughs.',
+  'Harness engineering is therefore defined as systems design around the model to optimize performance, token efficiency, and latency. The adjustable surface is system prompts, tool selection, and execution flow.',
+  'There is exactly one methodology, and it is the engine of the entire article: **use traces to understand failure modes at scale**. A trace is a text-space recording of model inputs and outputs — and because it is text, another agent can read, aggregate, and classify it. Throughout the experiments the model is held constant at GPT-5.2-Codex; the harness is the only variable.'
+ ],
+ diagram:'<div class="row"><div class="bx bd">trough<small>environment discovery</small></div><div class="bx gd">peak<small>algorithm design</small></div><div class="bx bd">trough<small>self-verification</small></div><div class="bx gd">peak<small>code generation</small></div><div class="bx bd">trough<small>time estimation</small></div></div><div class="row" style="margin-top:12px"><div class="bx on" style="min-width:auto">Harness</div><span class="ar">→</span><div style="font-size:12.5px;color:var(--dim)">fills troughs only — never touches the peaks</div></div>',
+ diagcap:'Capability is jagged. Every harness component should target one specific trough, not "make the model better" in general.',
+ analogy:'This is onboarding a strong engineer with bad process habits. You would not teach them to code. You would hand them an environment doc, a pre-submit checklist, and a rule that says "if you have edited the same file three times, go talk to someone." Every one of those fills a trough.',
+ miss:{t:'Reading "harness engineering" as "wrapping the model in a prompt template."',a:'The article lists three adjustable surfaces: system prompt, tools, and middleware (hooks around model and tool calls). Prompting is one third of it — and most of the changes that actually moved the number were middleware, which injects context or intercepts behavior deterministically rather than asking the model to comply.'},
+ keys:['A harness shapes spiky intelligence: target specific troughs, not the overall level.',
+       'Three adjustable surfaces: system prompt, tools, middleware.',
+       'Core methodology: use traces to analyze failure modes at scale.',
+       'The model is held constant at GPT-5.2-Codex — that control is what makes the result attributable.'],
+ quiz:[
+  {q:'"Spiky intelligence" refers to:',o:['Output being non-deterministic across identical inputs','Capability being distributed very unevenly — strong peaks, deep troughs','Performance degrading over long contexts','Inference cost rising sharply with task difficulty'],a:1,e:'Because the distribution is jagged, a harness should aim at the troughs precisely rather than pressuring everything uniformly.'},
+  {q:'Why hold the model constant at GPT-5.2-Codex across all experiments?',o:['It was the strongest model available','So the harness is the only variable and the score change is attributable','To reduce experiment cost','Because other models do not support middleware'],a:1,e:'Without controlling the variable, a hill-climbing result cannot be attributed to anything.'}]
+},
+{id:'m2',num:'02',eyebrow:'Setup',title:'The bench: Terminal Bench 2.0 and four pieces of infrastructure',
+ sub:'Know exactly what the score is a score of',prereqs:['m1'],
+ intuition:[
+  'The benchmark is Terminal Bench 2.0: 89 tasks spanning machine learning, debugging, and biology. It is a standard agentic coding benchmark — not question answering, but getting things done in a real terminal environment.',
+  'Four pieces of infrastructure surround it. Harbor orchestrates the runs; Daytona spins up sandboxes; LangSmith stores every agent action along with latency, token counts, and cost. Pay attention to that last one — if traces are not systematically stored and queryable, the entire methodology that follows does not exist.',
+  'The baseline is **52.8%** — inside the top-30 range on the leaderboard, but nowhere near the top 5. The constraint is tight: improve **through harness changes only**. No model swap, no fine-tuning.',
+  'Commit the baseline to memory, because every subsequent change is measured against it: the final number is **66.5%**, a net gain of 13.7 points.'
+ ],
+ diagram:'<div class="row"><div class="bx on">Harbor<small>orchestrates runs</small></div><span class="ar">→</span><div class="bx on">Daytona<small>spins up sandboxes</small></div><span class="ar">→</span><div class="bx">89 tasks<small>ML · debugging · biology</small></div><span class="ar">→</span><div class="bx on">LangSmith<small>traces + metrics</small></div></div><div style="height:14px"></div><div class="sb"><span class="nm">Baseline</span><span class="tr"><i class="mut" style="width:52.8%"></i></span><span class="vl">52.8</span></div><div class="sb"><span class="nm">Final</span><span class="tr"><i style="width:66.5%"></i></span><span class="vl">66.5</span></div>',
+ diagcap:'LangSmith is not an optional observability add-on — it is the data source for the entire trace-analysis loop in module 04.',
+ analogy:'The division of labor maps almost one-to-one onto CI infrastructure you already know: Harbor is the pipeline runner, Daytona is the ephemeral runner container, LangSmith is the centralized logging and metrics backend. Without that last layer, CI can tell you it went red but never why it keeps going red on the same class of case.',
+ miss:{t:'Attributing the 52.8 → 66.5 jump to "better prompting or a better model."',a:'The experiment explicitly pins the model. All 13.7 points come from the harness side: middleware, context injection, and reasoning-budget scheduling. That is precisely why the piece is worth reading — it demonstrates the harness as an independent optimization dimension with real returns.'},
+ table:{h:['Component','Responsibility'],r:[
+  ['Terminal Bench 2.0','89-task benchmark (ML / debugging / biology)'],
+  ['Harbor','Orchestrates runs'],
+  ['Daytona','Spins up sandbox environments'],
+  ['LangSmith','Stores agent actions and metrics: latency, tokens, cost']]},
+ keys:['Terminal Bench 2.0: 89 tasks across ML, debugging, and biology.',
+       'Baseline 52.8% (top-30 range, not top 5) → final 66.5%, net +13.7.',
+       'Hard constraint: harness changes only. No model swap, no fine-tuning.',
+       'Trace storage is a precondition for the methodology, not an accessory.'],
+ quiz:[
+  {q:'The baseline and final scores are:',o:['48.0 → 60.0','52.8 → 66.5','52.8 → 63.6','59.6 → 66.5'],a:1,e:'A net gain of 13.7 points, entirely from harness-side changes.'},
+  {q:'What role does LangSmith play in this setup?',o:['Orchestrating task runs','Spinning up isolated sandboxes','Storing agent actions and metrics as the data source for trace analysis','Filtering model output for safety'],a:2,e:'Without queryable traces, the analysis loop in module 04 has nothing to run on.'}]
+},
+{id:'m3',num:'03',eyebrow:'Setup',title:'Three knobs: system prompt, tools, middleware',
+ sub:'Turning "improve the agent" into a finite, enumerable action space',prereqs:['m1'],
+ intuition:[
+  'The article collapses the harness surface into three knobs, and that collapse is itself valuable — it converts the unbounded question "how do I make this agent better" into a finite action space.',
+  '**System prompt**: tells the model how to think and what standards to follow. Its defining property is that it is soft — the model can ignore it.',
+  '**Tools**: what the model can call. This sets the capability ceiling, and many failures that look like reasoning problems are actually a missing tool.',
+  '**Middleware**: hooks around model and tool calls. This is the most underrated of the three and the source of most of the gain here. Its key property is **determinism** — middleware does not ask the model to cooperate, it injects context or intercepts behavior at a fixed moment. All three components that appear later (`PreCompletionChecklistMiddleware`, `LocalContextMiddleware`, `LoopDetectionMiddleware`) are of this kind.',
+  'Read the rest of the modules with one question in mind: is this improvement asking the model to comply (prompt), or making non-compliance impossible (middleware)? The answer usually explains why it worked.'
+ ],
+ diagram:'<div class="row"><div class="bx">System prompt<small>soft · ignorable</small></div><div class="bx">Tools<small>capability ceiling</small></div><div class="bx on">Middleware<small>deterministic hooks</small></div></div><div style="height:12px"></div><div class="row"><div class="bx" style="min-width:auto">on startup</div><span class="ar">→</span><div class="bx" style="min-width:auto">per tool call</div><span class="ar">→</span><div class="bx" style="min-width:auto">before exit</div><span style="font-size:12px;color:var(--dim);margin-left:8px">← the three middleware mount points</span></div>',
+ diagcap:'The knobs differ less in function than in enforcement: a prompt requests compliance, middleware does not request.',
+ analogy:'This is convention versus gate. "Please run the tests before committing" in a team handbook is the prompt; a pre-commit hook that physically blocks you is the middleware. You already know how far apart those two compliance rates are — most of the gain in this article lives in that gap.',
+ miss:{t:'Treating middleware as just another way to express a prompt, with equivalent effect.',a:'The difference is determinism. A prompt depends on the model choosing to comply every single time; middleware executes unconditionally at a fixed moment — for example, forcing a verification pass before exit. Several improvements here are exactly the act of converting "stated in the prompt but often ignored" into a hook.'},
+ keys:['Three knobs: system prompt, tools, middleware.',
+       'Prompts are soft (ignorable); middleware is deterministic (unconditional).',
+       'Missing tools are frequently misdiagnosed as insufficient reasoning.',
+       'All three core components in this article are middleware.'],
+ quiz:[
+  {q:'The key advantage of middleware over a system prompt is:',o:['It consumes fewer tokens','It executes deterministically at a fixed moment, independent of the model choosing to comply','It allows switching models dynamically','It enables parallel tool calls'],a:1,e:'Convention versus gate — the compliance gap is where the gain comes from.'},
+  {q:'Why does collapsing the harness into three knobs matter?',o:['It reduces engineering effort','It turns an unbounded "how do I improve this agent" into a finite, enumerable action space','It makes instructions easier for the model to follow','It lowers trace storage cost'],a:1,e:'Only a bounded action space can be traversed and attributed systematically.'}]
+},
+{id:'m4',num:'04',eyebrow:'Methodology',title:'The trace analyzer: making improvement repeatable',
+ sub:'The real methodological core of the article',prereqs:['m2','m3'],
+ intuition:[
+  'If you take one thing away, take this: they built a **trace analyzer skill** that automates the act of analyzing errors and proposing harness improvements.',
+  'Four steps: fetch experiment traces from LangSmith; spawn parallel error-analysis agents while a main agent synthesizes their findings; aggregate the feedback into targeted harness changes; then human verification (optional, but beneficial).',
+  'Notice the shape of step two — **parallel analysis, centralized synthesis**. Classifying failure modes is naturally parallel (each trace is independent), while "what harness defect do these failures collectively point at" requires a global view. That split is not arbitrary.',
+  'The article compares the approach to **boosting** in machine learning: each round focuses on the previous round`s failures. The analogy is apt, and it brings its own risk with it.',
+  'That risk is **overfitting**: tuning too tightly to specific tasks costs generalization and causes regressions. It is the one explicit warning in the piece, and its placement inside the methodology section rather than the conclusion signals that it is intrinsic to the loop, not an afterthought.'
+ ],
+ diagram:'<div class="row"><div class="bx">LangSmith traces</div><span class="ar">→</span><div class="col"><div class="bx on" style="min-width:auto">analysis agent</div><div class="bx on" style="min-width:auto">analysis agent</div><div class="bx on" style="min-width:auto">analysis agent</div></div><span class="ar">→</span><div class="bx">main agent synthesizes</div><span class="ar">→</span><div class="bx gd">targeted harness change</div><span class="ar">→</span><div class="bx">human review</div></div>',
+ diagcap:'Parallel classification, centralized synthesis. The first scales; the second needs a global view. They should not be one agent doing both in sequence.',
+ analogy:'Same shape as an incident review: classify a batch of alerts by symptom in parallel, then have one person pull back and ask whether they share a root cause. The only difference is that classification is delegated to agents here, while root-cause synthesis keeps a central node. The overfitting risk maps too — pile up enough special-case rules aimed at individual incidents and the system becomes brittle.',
+ miss:{t:'Treating trace analysis as a one-off debugging exercise.',a:'It is built as a repeatable skill because the climb is multi-round: each round builds on the previous round`s failures. That is where the boosting analogy holds — and why overfitting is intrinsic to the loop, needing human review and cross-task validation as a hedge.'},
+ keys:['The trace analyzer is a repeatable skill, not one-off debugging.',
+       'Flow: fetch traces → parallel analysis agents → main agent synthesis → targeted change → (recommended) human review.',
+       'Methodologically analogous to boosting: each round focuses on prior failures.',
+       'The intrinsic risk is overfitting to specific tasks, costing generalization and causing regressions.'],
+ quiz:[
+  {q:'Why use parallel analysis plus a synthesizing main agent instead of one agent processing sequentially?',o:['It is cheaper','Classification parallelizes, while identifying the shared defect needs a global view — two different kinds of work','A single agent cannot fit all traces in context','It avoids model self-evaluation bias'],a:1,e:'The split reflects two genuinely different kinds of work.'},
+  {q:'The boosting analogy brings which intrinsic risk?',o:['Training cost grows exponentially','Overfitting to specific tasks, losing generalization and causing regressions','Trace storage explodes','Output variance increases'],a:1,e:'Which is why human review, labeled optional, is a meaningful hedge in practice.'}]
+},
+{id:'m5',num:'05',eyebrow:'Improvement I',title:'Build and self-verify',
+ sub:'The agent`s worst habit is shipping the first thing that looks right',prereqs:['m4'],
+ intuition:[
+  'The first failure mode the traces exposed is extremely common: the agent stops after its first **plausible** solution, without testing, showing almost no spontaneous tendency toward a build-verify loop.',
+  'The core insight is one sentence worth copying verbatim: **self-verification allows agents to self-improve via feedback within a run**. Note the qualifier — *within a run*. No retraining, no human in the loop; the entire feedback cycle happens inside this single execution.',
+  'Four stages follow. **Planning and discovery**: read the task, scan the codebase, build a verification plan — note that the plan exists before any code does. **Build**: implement with verification in mind, create tests. **Verify**: run the tests and compare output against the **specification**, not against your own code. **Fix**: analyze errors, revisit the spec, refine.',
+  'That qualifier in stage three is the crux. Verifying against your own implementation asks "is what I built what I built" — always true. Only comparing against the spec can reveal that you misunderstood the task from the start.'
+ ],
+ diagram:'<div class="row"><div class="bx on">1 Plan &amp; discover<small>build the verification plan first</small></div><span class="ar">→</span><div class="bx on">2 Build<small>write tests alongside</small></div><span class="ar">→</span><div class="bx on">3 Verify<small>against the spec</small></div><span class="ar">→</span><div class="bx on">4 Fix<small>revisit the spec</small></div></div><div class="row" style="margin-top:8px"><span class="ar" style="margin-left:6px">↑______________ closes within a single run ______________|</span></div>',
+ diagcap:'Swap the comparison target in step 3 for "my own implementation" and the whole loop degenerates into a tautology.',
+ analogy:'"Compare against the spec, not your own code" is the rule that test cases must not be reverse-engineered from the implementation. You have seen the kind of unit test derived from a function body — great coverage, changes whenever behavior changes, always green. An agent`s self-verification that is not anchored to a spec is the same self-deception.',
+ miss:{t:'Assuming "have the agent run some tests" is the same as self-verification.',a:'Two constraints carry the weight: the verification plan must exist before building, and the comparison basis must be the spec. Drop either one and the agent can test diligently while validating a wrong understanding the whole time.'},
+ keys:['Failure mode: stopping at the first plausible solution, with little spontaneous build-verify behavior.',
+       'Core insight: self-verification lets the agent self-improve via feedback within a run.',
+       'Four stages: plan & discover → build → verify → fix.',
+       'Verification must compare against the spec; comparing against your own implementation is a tautology.',
+       'The verification plan belongs before the build, not after.'],
+ quiz:[
+  {q:'The most important constraint in the verify stage is:',o:['Meeting a test coverage threshold','Comparing output against the specification rather than your own implementation','Using an independent test framework','Having a separate agent perform verification'],a:1,e:'Comparing against your own code asks "is what I built what I built" — always true.'},
+  {q:'In "self-verification lets the agent self-improve," the improvement happens:',o:['Across runs, requiring retraining','Within a single run, through a feedback loop','With human intervention each round','Only in multi-agent architectures'],a:1,e:'Within a run — which is exactly what makes it cheap and scalable.'}]
+},
+{id:'m6',num:'06',eyebrow:'Improvement I',title:'Turning verification into a hook',
+ sub:'From "please verify" to "you cannot exit without verifying"',prereqs:['m5','m3'],
+ intuition:[
+  'The four-stage method written into a system prompt alone hits the problem from module 03: the model can ignore it. So the implementation uses two legs — prompt guidance on how to approach problems, plus `PreCompletionChecklistMiddleware`.',
+  'What the middleware does is blunt: **intercept the agent before it exits and force a verification pass**. Want to call it done? Clear the checklist first.',
+  'The article mentions a name circulating in the community: the **Ralph Wiggum Loop** — a hook that forces continued execution before exit. The name is a joke; the mechanism is not. The model`s judgment of "I am finished" is systematically optimistic, so that judgment cannot be its alone to make.',
+  'One easily skipped line carries real weight: **deterministic context injection aids verification**. Not reminding it to verify — putting the right thing in front of it at the moment it must pass through.'
+ ],
+ diagram:'<div class="row"><div class="bx">agent believes it is done</div><span class="ar">→</span><div class="bx bd" style="min-width:auto">✋ intercept</div><span class="ar">→</span><div class="bx on">forced verification checklist</div><span class="ar">→</span><div class="col"><div class="bx gd" style="min-width:auto">pass → exit</div><div class="bx bd" style="min-width:auto">fail → back to fix</div></div></div>',
+ diagcap:'Half the "I am done" decision has been taken away from the model: it may propose exiting, but it cannot approve it.',
+ analogy:'This is a pre-commit hook or a merge gate. Writing "run the tests before you commit" a hundred times in the handbook does less than one required check in CI. People and models share the trait: both overestimate completeness at the moment they believe they are finished.',
+ miss:{t:'Finding the Ralph Wiggum Loop crude and assuming better prompting should solve it instead.',a:'Crudeness is why it works. The model has a systematic optimism bias about completeness, and a systematic bias cannot be removed by asking the biased party to pay attention — only by taking part of the decision away from it.'},
+ keys:['Two legs: system prompt supplies the method, middleware supplies the enforcement.',
+       'PreCompletionChecklistMiddleware intercepts before exit and forces verification.',
+       'Ralph Wiggum Loop: a hook that forces continued execution before exit.',
+       'Deterministic context injection beats reminding the model to verify.'],
+ quiz:[
+  {q:'PreCompletionChecklistMiddleware acts:',o:['At agent startup','After every tool call','Just before the agent exits, intercepting it to force verification','On every file edit'],a:2,e:'It takes the authority to approve "I am done" away from the model.'},
+  {q:'Why is a forced hook more effective than stating the same thing in the prompt?',o:['Prompts consume context','The model has a systematic optimism bias about completeness, and systematic bias cannot be removed by requesting cooperation','Hooks cost fewer tokens','Prompts cannot describe verification steps'],a:1,e:'This is the convention-versus-gate distinction from module 03, applied.'}]
+},
+{id:'m7',num:'07',eyebrow:'Improvement II',title:'LocalContextMiddleware: tell it where it is',
+ sub:'Many "reasoning errors" are really an unknown environment',prereqs:['m3'],
+ intuition:[
+  'The second class of improvement sits under one heading: **build a good delivery mechanism for context engineering**. The emphasis is on *delivery* — not letting the agent discover context, but putting it in front of the agent.',
+  '`LocalContextMiddleware` runs at agent startup and does two things: map the current working directory along with its parent and child structure, and use bash commands to establish what tooling is installed (a Python environment, for instance).',
+  'The goal is to **reduce context-discovery errors** and onboard the agent into the environment. Think of it as the first-day environment doc for a new hire — not a statement of distrust in their ability, but recognition that this information costs far more to rediscover than to hand over.',
+  'This dovetails exactly with spiky intelligence from module 01: environment discovery is precisely the kind of trough that runs deep in the model and is extremely cheap to fill in engineering terms. A few bash commands, versus a dozen tool calls spent guessing at a directory structure and guessing wrong.'
+ ],
+ diagram:'<div class="row"><div class="bx bd">no injection<small>agent explores on its own</small></div><span class="ar">→</span><div class="bx bd">a dozen probing rounds<small>wrong paths · misjudged tooling</small></div></div><div style="height:12px"></div><div class="row"><div class="bx on">LocalContextMiddleware<small>runs at startup</small></div><span class="ar">→</span><div class="bx">directory map + tool inventory</div><span class="ar">→</span><div class="bx gd">straight into the task</div></div>',
+ diagcap:'The cost comparison is the entire argument: a few bash commands versus a dozen tool calls spent guessing wrong.',
+ analogy:'It is the genuinely useful part of a new-hire README — "the repo looks like this, install dependencies this way, these commands get it running." Skip it and every new person walks the same path, differently. An agent has no second day; it arrives new every time.',
+ miss:{t:'Believing a strong model should discover its environment itself, making injection redundant.',a:'This is the canonical spiky-intelligence trough: being strong overall does not make every step strong, and the failure cost of self-discovery (a dozen wasted tool calls, wrong paths) far exceeds a few bash commands at startup. The argument is about cost, not capability.'},
+ keys:['Heading: build a good delivery mechanism for context — push it, do not wait for discovery.',
+       'LocalContextMiddleware maps the directory structure and installed tooling at startup.',
+       'The goal is fewer context-discovery errors, onboarding the agent into its environment.',
+       'The justification is a cost comparison, not doubt about capability.'],
+ quiz:[
+  {q:'When does LocalContextMiddleware run, and what does it do?',o:['Before exit, checking file integrity','At startup, mapping the directory structure and identifying installed tooling','After each edit, refreshing the file tree','During verification, comparing against the spec'],a:1,e:'A one-time onboarding injection.'},
+  {q:'"A good delivery mechanism for context engineering" emphasizes:',o:['Compressing context to save tokens','Pushing context to the agent rather than letting it discover it','Retrieving context on demand via vector search','Letting the agent decide what context it needs'],a:1,e:'Delivery — not waiting for discovery.'}]
+},
+{id:'m8',num:'08',eyebrow:'Improvement II',title:'Testable code, and a time budget',
+ sub:'Two small changes, each aimed at one concrete bad habit',prereqs:['m7'],
+ intuition:[
+  'Two specific moves under the same heading. Both are small, and both have logic worth extracting.',
+  '**Teaching agents to write testable code**: tell it explicitly that its work will be measured by programmatic tests; stress edge-case handling in the prompt; enforce strict file-path compliance. The strategy is summarized as conforming the model to testing standards to avoid **slop buildup**. The core move is stating the grading criteria up front — an agent that knows how it will be tested writes something testable. The file-path rule is especially practical: test scripts look for artifacts at fixed paths, and an agent that puts them somewhere else fails despite correct logic.',
+  '**Time budgeting**: inject time-budget warnings to push the agent toward finishing and into the verification phase. The stated reason is blunt — **models are poor at estimating time**, so the constraint has to come from the environment.',
+  'Together these reveal a pattern: what the model lacks is often not capability but **information about its own situation** — how it will be judged, how much time is left. Neither can be obtained by introspection; both must be injected by the harness.'
+ ],
+ diagram:'<div class="row"><div class="bx on">state the grading criteria up front<small>programmatic tests</small></div><span class="ar">→</span><div class="bx gd">testable code</div></div><div style="height:10px"></div><div class="row"><div class="bx on">inject a time budget<small>models cannot estimate time</small></div><span class="ar">→</span><div class="bx gd">pushed toward closing and verifying</div></div><div style="height:12px"></div><div class="row"><div style="font-size:12.5px;color:var(--dim)">Common thread: what is injected is not capability, it is <strong style="color:var(--sig)">information about the model&#39;s own situation</strong></div></div>',
+ diagcap:'"How I will be judged" and "how much time remains" are both unavailable to introspection.',
+ analogy:'Same as writing acceptance criteria into a ticket — an engineer who knows how QA will test it delivers something different. The time budget is the sprint burndown on the wall: not distrust of anyone`s judgment, just information that was never in their field of view.',
+ miss:{t:'Dismissing "enforce strict file paths" as pedantic formatting.',a:'In programmatic evaluation it is a hard failure point: the test script looks for artifacts at a fixed path, and misplacing them scores zero regardless of how correct the logic is. In a trace this class of failure looks like a capability problem when it is really a convention problem.'},
+ keys:['State the grading method up front: programmatic tests, edge cases, strict file paths.',
+       'The purpose is avoiding slop buildup.',
+       'Inject a time budget, because models estimate time poorly and need the constraint from outside.',
+       'Common pattern: inject information about the model`s own situation, not capability.'],
+ quiz:[
+  {q:'The stated reason for injecting a time budget is:',o:['Reducing inference cost','Models estimate time poorly and need an environmental constraint to push them toward closing and verifying','Preventing context overflow','Making latency easier to measure'],a:1,e:'Time awareness is external information the model cannot introspect.'},
+  {q:'Why does "enforce strict file paths" matter?',o:['It helps code review','Programmatic tests look for artifacts at fixed paths; misplacing them fails regardless of logic','It saves disk space','It prevents path traversal vulnerabilities'],a:1,e:'In a trace this looks like a capability problem but is a convention problem.'}]
+},
+{id:'m9',num:'09',eyebrow:'Improvement III',title:'LoopDetectionMiddleware: pulling it out of a doom loop',
+ sub:'Detect the bad pattern instead of waiting for the model to notice',prereqs:['m3'],
+ intuition:[
+  'The third failure mode: agents fall into myopic **doom loops**, iterating ten or more times on an approach already shown not to work. People do this while debugging too — the difference is that a person eventually stops and says "wait, am I going the wrong direction," and the agent does not generate that turn spontaneously.',
+  '`LoopDetectionMiddleware` takes a plain and effective approach: track **per-file edit counts** through tool-call hooks, and after N edits inject a contextual prompt such as "consider reconsidering your approach."',
+  'Note the restraint — it **only injects a prompt, and the model can override it**. This is not a hard block. The designers evidently think the judgment of whether to change approach still belongs to the model; middleware only manufactures the moment of reflection. Compare the hard exit interception in module 06 with the soft nudge here: enforcement is allocated per situation.',
+  'A design philosophy follows immediately, worth memorizing on its own: **engineer around today`s model limitations while planning for future improvement — these guardrails are expected to become unnecessary**. It is a rare piece of self-negation in the piece, and a good ruler for judging how mature a harness component is.'
+ ],
+ diagram:'<div class="row"><div class="bx bd">edit file.py ×1</div><span class="ar">→</span><div class="bx bd">×2 … ×N</div><span class="ar">→</span><div class="bx on">inject prompt<small>"consider reconsidering"</small></div><span class="ar">→</span><div class="col"><div class="bx gd" style="min-width:auto">change approach</div><div class="bx" style="min-width:auto">or continue (overridable)</div></div></div>',
+ diagcap:'A soft intervention: middleware manufactures the moment of reflection, the judgment stays with the model. Compare the hard block in module 06 — enforcement is allocated per situation.',
+ analogy:'It is the person in a pairing session who watches for a while and finally says "should we go back and reread the requirement?" They do not take the keyboard; they interrupt the rhythm of drilling deeper. It is also backoff and retry limits — the root cause of blind retrying is rarely the retry itself, it is that nobody calls a halt.',
+ miss:{t:'Assuming that once a bad pattern is detected, the agent should be hard-blocked from editing that file.',a:'The implementation only injects a prompt, and the model can override it. Whether to change approach is a situational judgment, and a hard block would punish the legitimate cases that genuinely need many edits. Hard blocks are reserved for judgments whose bias runs in a single direction.'},
+ keys:['Doom loop: 10+ iterations on one failing approach.',
+       'LoopDetectionMiddleware counts per-file edits and injects a reflection prompt past a threshold.',
+       'Soft intervention — the model may override. Enforcement is allocated per situation.',
+       'Design philosophy: engineer around today`s limits, and expect these guardrails to become unnecessary.'],
+ quiz:[
+  {q:'What signal does LoopDetectionMiddleware track?',o:['Token consumption rate','Cumulative edit count per file','Total tool-call rounds','Consecutive test failures'],a:1,e:'Per-file edit counts, with a prompt injected past a threshold.'},
+  {q:'Why inject an overridable prompt instead of hard-blocking?',o:['It is simpler to implement','Whether to change approach is situational, and a hard block would punish legitimate multi-edit cases','It avoids added latency','The model does not support interruption'],a:1,e:'Compare the exit interception in module 06: only single-direction bias suits a hard gate.'},
+  {q:'What does "these guardrails are expected to become unnecessary" mean in practice?',o:['Guardrails should not be added now','Bind each guardrail to a specific model limitation, then re-evaluate and remove it as models evolve','Guardrails should be kept permanently in case of regression','Build the harness only after models mature'],a:1,e:'Binding a component to the defect it targets is what tells you when it can retire.'}]
+},
+{id:'m10',num:'10',eyebrow:'Improvement IV',title:'The reasoning sandwich',
+ sub:'The single most directly copyable move in the article',prereqs:['m5'],
+ intuition:[
+  'Reasoning models can run autonomously for hours, which creates a new trade-off: reasoning depth against timeout constraints. GPT-5.2-Codex exposes four reasoning modes: Low, Medium, High, XHigh.',
+  'The naive intuition is "higher is better." The data disagrees: **XHigh throughout scores only 53.9% because of timeouts**, while High throughout reaches 63.6%. More reasoning does improve evaluation quality, but it burns 2x or more in tokens and time — and under a timeout, that cost eats the gain outright.',
+  'The key finding is that **reasoning benefits the planning and verification stages most**. Since the benefit is unevenly distributed, the compute should not be evenly distributed.',
+  'Hence the **reasoning sandwich**: XHigh on planning, High on implementation, XHigh on verification. Score: **66.5%** — 2.9 points above High throughout, and 12.6 points above XHigh throughout.',
+  'Two future directions are noted: adaptive reasoning (Claude, Gemini, where the model decides its own compute spend), and multi-model harnesses that plan with a larger model and implement with a smaller one via handoffs.'
+ ],
+ diagram:'<div class="row"><div class="bx on">Planning<small>XHigh</small></div><span class="ar">→</span><div class="bx">Implementation<small>High</small></div><span class="ar">→</span><div class="bx on">Verification<small>XHigh</small></div></div><div style="height:16px"></div><div class="sb"><span class="nm">XHigh throughout</span><span class="tr"><i class="mut" style="width:53.9%"></i></span><span class="vl">53.9</span></div><div class="sb"><span class="nm">High throughout</span><span class="tr"><i class="mut" style="width:63.6%"></i></span><span class="vl">63.6</span></div><div class="sb"><span class="nm">Sandwich</span><span class="tr"><i style="width:66.5%"></i></span><span class="vl">66.5</span></div>',
+ diagcap:'Maximum everywhere finishes last — timeouts consume the entire gain. Deliberately downshifting the middle is what buys budget for the ends.',
+ analogy:'Same trade-off as performance work: you do not put the heaviest cache and the fullest validation on every endpoint, you find the two segments actually on the critical path and spend there. XHigh throughout is giving every query maximum retries and the longest timeout — each decision looks safer in isolation, and together they blow the SLA.',
+ miss:{t:'Assuming a higher reasoning mode always yields a higher score.',a:'53.9 versus 63.6: XHigh throughout lands nearly 10 points lower because of timeouts. Under a binding constraint, stacking locally optimal choices degrades the global result. The fix is allocating budget according to where the benefit actually is.'},
+ table:{h:['Strategy','Planning','Implementation','Verification','Score'],r:[
+  ['XHigh throughout','XHigh','XHigh','XHigh','<span class="num">53.9</span> (timeouts)'],
+  ['High throughout','High','High','High','<span class="num">63.6</span>'],
+  ['Reasoning sandwich','XHigh','High','XHigh','<span class="num">66.5</span>']]},
+ keys:['Four modes: Low / Medium / High / XHigh; more reasoning burns 2x+ in tokens and time.',
+       'Reasoning benefit concentrates in planning and verification; implementation gains little.',
+       'Sandwich: XHigh plan → High implement → XHigh verify = 66.5%.',
+       'XHigh throughout scores only 53.9% due to timeouts, below High throughout at 63.6%.',
+       'Future: adaptive reasoning, and multi-model handoffs (large plans, small implements).'],
+ quiz:[
+  {q:'Why does XHigh throughout score only 53.9%?',o:['Excessive reasoning causes overfitting','Timeouts — reasoning burns 2x+ the time and the runs do not finish','The XHigh mode has an implementation defect','Verification does not need high reasoning'],a:1,e:'Under a binding constraint, optimal everywhere is worse globally.'},
+  {q:'The reasoning sandwich configuration is:',o:['High plan → XHigh implement → High verify','XHigh plan → High implement → XHigh verify','Medium plan → XHigh implement → Low verify','High throughout, XHigh only on verification'],a:1,e:'Compute is spent on the two ends where the benefit is highest.'},
+  {q:'What finding makes the sandwich possible?',o:['Reasoning cost scales linearly with mode','Reasoning benefit is unevenly distributed across stages, concentrating in planning and verification','Implementation is the most error-prone stage','The model can decide its own reasoning spend'],a:1,e:'Uneven benefit is the precondition for differentiated allocation.'}]
+},
+{id:'m11',num:'11',eyebrow:'Takeaways',title:'Five practical principles',
+ sub:'The article compressed into a checklist',prereqs:['m6','m8','m9','m10'],
+ intuition:[
+  'The article closes with five principles, essentially a condensation of everything above.',
+  '**One: do context engineering on the agent`s behalf.** Context assembly remains hard for agents, so inject it directly: directory structures, available tools, coding best practices, problem-solving strategies. The point is shrinking the error surface for search and planning.',
+  '**Two: help agents self-verify.** Models are biased toward the first plausible solution, so prompt **aggressively** for testing and refinement. The article stresses this is critical for autonomous coding without human oversight — when nobody is watching, self-verification is the only quality gate.',
+  '**Three: treat traces as a feedback signal.** Traces let agents self-evaluate and debug. One practical addition: **debug tooling and reasoning together**, because bad execution paths often stem from a missing tool or instruction rather than insufficient reasoning.',
+  '**Four: detect and fix bad patterns short-term.** Design around today`s shortcomings while planning for smarter models. The examples given are blind retries and unverified work. Guardrails are expected to dissolve as models improve.',
+  '**Five: tailor harnesses to models.** Different models (Codex, Claude) need different prompting strategies. One concrete number: **Claude Opus 4.6 scored 59.6% on an earlier version of the harness** — competitive, but lower than Codex. Principles generalize; every model still requires its own iteration.',
+  'The fifth principle is really a qualifier on the first four: the **specific configuration** of this harness is not portable. The methodology is.'
+ ],
+ diagram:'<div class="row"><div class="bx on">1 context engineering for it</div><div class="bx on">2 help it self-verify</div></div><div class="row" style="margin-top:9px"><div class="bx on">3 traces as feedback</div><div class="bx on">4 fix bad patterns short-term</div></div><div class="row" style="margin-top:9px"><div class="bx" style="border-color:var(--warn);color:var(--warn)">5 tailor to the model — the qualifier on the other four</div></div>',
+ diagcap:'The fifth is not a parallel item; it bounds the applicability of the first four. Methodology ports, configuration does not.',
+ analogy:'Like tuning parameters that cannot be copied across environments: the method (load test, find the bottleneck, verify one change at a time) applies anywhere, but the specific thread-pool size and GC flags need re-tuning on a different machine. Copying someone else`s config file is the classic mistake; copying their tuning method is always right.',
+ miss:{t:'Treating this harness configuration as a best practice you can port directly to your own project and model.',a:'The fifth principle explicitly denies it: Opus 4.6 scores 59.6% on the same harness, and different models need different prompting strategies. What ports is the loop — use traces to find failure modes, change the harness in a targeted way, verify.'},
+ keys:['Five: context engineering for it / help it self-verify / traces as feedback / fix bad patterns short-term / tailor to the model.',
+       'Debug tooling and reasoning together — bad paths often mean a missing tool, not missing intelligence.',
+       'Self-verification is the only quality gate in unsupervised autonomous coding.',
+       'Opus 4.6 scored 59.6% on the earlier harness, showing configuration does not port across models.',
+       'What ports is the methodological loop, not the configuration.'],
+ quiz:[
+  {q:'What justifies "debug tooling and reasoning together"?',o:['Tool calls consume many tokens','Bad execution paths often stem from a missing tool or instruction rather than insufficient reasoning','Reasoning cannot be observed separately','Tool errors pollute the context'],a:1,e:'It is easy to misdiagnose "no tool available" as "cannot figure it out."'},
+  {q:'What does Claude Opus 4.6 scoring 59.6% on the earlier harness demonstrate?',o:['Claude is weaker than Codex','Harness configuration does not port across models and needs per-model iteration','The harness design is flawed','The benchmark is unfair to Claude'],a:1,e:'The article calls it competitive but lower, pointing toward customization rather than ranking.'}]
+},
+{id:'m12',num:'12',eyebrow:'Outlook',title:'Open questions and community contributions',
+ sub:'What the authors themselves consider unsolved',prereqs:['m11'],
+ intuition:[
+  'The article closes with open directions, worth knowing as the boundary of what has been solved.',
+  '**Multi-model systems**: combining Codex, Gemini, and Claude. This extends the thread from the end of module 10 — large model plans, small model implements, with handoffs between them.',
+  '**Memory primitives**: enabling continual autonomous learning. Contrast this with self-verification from module 05 — that feedback loop closes **within a run**, while memory addresses accumulation **across runs**. This is explicitly not covered by the current harness.',
+  '**Measuring harness changes across model families**: the loose end left by the fifth principle — how do you tell whether a change is a specialization for model A or a general improvement.',
+  'On method, **RLMs (reinforcement learning models)** are mentioned for mining traces more efficiently.',
+  'Two concrete community contributions: a **published dataset of traces** from the experiments, and **Deep Agents remaining open source** (Python and JavaScript). Publishing the traces is consistent with the methodology — if traces are the core feedback signal, releasing them is the most substantial contribution available. The closing line is "To more hill climbing and open research."'
+ ],
+ diagram:'<div class="row"><div class="bx">within a run<small>self-verification loop ✓ solved</small></div><span class="ar">vs</span><div class="bx bd">across runs<small>memory primitives · open</small></div></div><div style="height:12px"></div><div class="row"><div class="bx on">published trace dataset</div><div class="bx on">Deep Agents open source<small>Python + JavaScript</small></div></div>',
+ diagcap:'Hold these two side by side: this work solves feedback inside a run; accumulation between runs is still blank.',
+ analogy:'A service with solid in-request retries and degradation, but no cross-request learning — every request reasons from scratch. The observability data exists; the loop that feeds it back into system behavior does not.',
+ miss:{t:'Taking self-verification as evidence that agents already learn continually.',a:'The time scales are different: self-verification is a feedback loop inside one run, while accumulating experience across runs requires memory primitives — which the article lists as an unsolved open problem.'},
+ keys:['Open directions: multi-model systems, memory primitives (cross-run learning), cross-family measurement.',
+       'Method exploration: RLMs for more efficient trace mining.',
+       'Self-verification covers within-run feedback; between-run accumulation is still blank.',
+       'A trace dataset was published; Deep Agents stays open source (Python / JavaScript).'],
+ quiz:[
+  {q:'How do memory primitives differ from self-verification?',o:['Memory compresses context, self-verification corrects errors','Self-verification is a within-run feedback loop; memory addresses accumulation across runs','Memory only matters for multi-model systems','They are the same thing at different layers'],a:1,e:'Different time scales, and cross-run learning is listed as unsolved.'},
+  {q:'How does publishing the trace dataset relate to the article`s methodology?',o:['Unrelated, just routine open-sourcing','Consistent — if traces are the core feedback signal, releasing them is the most substantial contribution available','To attract model vendors','To prove the results were not fabricated'],a:1,e:'Contribute the thing your methodology claims is central.'}]
+},
+{id:'m13',num:'13',eyebrow:'Synthesis',title:'The three middleware side by side',
+ sub:'Timing, enforcement, and the trough each targets',prereqs:['m6','m7','m9'],
+ intuition:[
+  'The three middleware introduced separately only reveal their design pattern when placed in one table.',
+  'Their **mount points** happen to be three distinct moments in the agent lifecycle: startup (LocalContext), every tool call (LoopDetection), and before exit (PreCompletionChecklist). That is not coincidence — together they cover every moment at which a harness can intervene deterministically.',
+  '**Enforcement is allocated by the direction of the bias.** For "may I exit," the model`s bias is single-directional and stable (always optimistic), so a hard block fits. For "should I change approach," the right answer depends on the situation, so a hard block would cause collateral damage and only a soft nudge fits. For "what does the environment look like," no judgment is involved at all — just inject the facts.',
+  'Each component also targets one specific capability trough, which makes the line from module 09 about guardrails becoming unnecessary operational: when the model no longer has that trough, the corresponding component should be removed. **Binding a component to the defect it targets is what tells you when it can retire.**'
+ ],
+ diagram:'<div class="row"><div class="bx on">startup<small>LocalContext<br>inject facts</small></div><span class="ar">→</span><div class="bx on">every tool call<small>LoopDetection<br>soft nudge</small></div><span class="ar">→</span><div class="bx on">before exit<small>PreCompletionChecklist<br>hard block</small></div></div>',
+ diagcap:'Three mount points covering every moment a harness can deterministically intervene in the agent lifecycle.',
+ analogy:'Maps onto three layers you know: startup injection is the container`s env and configmap, loop detection is runtime circuit breaking and backoff, the exit check is a required CI check. Enforcement increases as the intervention moves later — that gradient is designed, not accidental.',
+ miss:{t:'Assuming stronger enforcement is always better and everything should be a hard block.',a:'Enforcement should match the directionality of the bias. Single-directional, stable bias (always believing it is finished) suits a hard gate; situation-dependent judgments (whether to change approach) can only take a soft nudge, or legitimate paths get punished.'},
+ table:{h:['Component','Timing','Enforcement','Trough it targets'],r:[
+  ['LocalContextMiddleware','Startup','Inject facts','Not knowing the environment'],
+  ['LoopDetectionMiddleware','Every tool call','Soft nudge (overridable)','Stuck in a doom loop unaware'],
+  ['PreCompletionChecklistMiddleware','Before exit','Hard block','Systematic optimism about completeness']]},
+ keys:['Three mount points: startup / every tool call / before exit.',
+       'Enforcement follows bias directionality: single-direction → hard block; situational → soft nudge; no judgment → inject facts.',
+       'Each component binds to one capability trough, which determines when it retires.',
+       'Echoes module 09: guardrails should be re-evaluated as models improve.'],
+ quiz:[
+  {q:'Why does "may I exit" suit a hard block while "should I change approach" only suits a soft nudge?',o:['The former is simpler to implement','The former has single-directional, stable bias (always optimistic); the latter is situational and a hard block would punish legitimate cases','The former is cheaper to evaluate','The latter cannot be detected'],a:1,e:'Enforcement should match bias directionality — the shared rule across all three components.'},
+  {q:'What is the direct benefit of binding a component to the defect it targets?',o:['Easier code reuse','When the model no longer has that defect, you know the component can retire','Lower runtime overhead','Easier porting across models'],a:1,e:'It turns "guardrails will become unnecessary" from an aspiration into an operational test.'}]
+}
+];
+
+var FEY=[
+{id:'f1',t:'Explain why a harness shapes spiky intelligence',
+ p:'A colleague says: "Models are strong enough now — why bother with a harness? The next generation will solve all of this." Respond to them.',
+ c:['Explain spiky: capability is unevenly distributed, with deep troughs often in mundane places','Say why a harness targets specific troughs rather than the overall level — a granularity training cannot reach','Give one concrete trough, e.g. environment discovery or time estimation','Concede that some guardrails do expire, and explain why components are bound to defects','Note the experiment held the model fixed and still gained 13.7 points — an independent optimization dimension']},
+{id:'f2',t:'Choosing between a prompt and middleware',
+ p:'Your team wants the agent to always run tests before submitting. One person wants it in the system prompt, another wants a hook. How do you decide?',
+ c:['Distinguish soft (ignorable) from deterministic (unconditional)','Point out the systematic optimism bias, which cannot be removed by asking for cooperation','Cite PreCompletionChecklistMiddleware: intercept before exit, force verification','Add the counterexample: LoopDetection only nudges, because "change approach" is situational','Summarize the test: single-directional stable bias → hard gate; situational → soft nudge']},
+{id:'f3',t:'Walk through the four stages of build and self-verify',
+ p:'A new teammate asks: "Isn`t self-verification just having the agent run some tests?"',
+ c:['List the four stages: plan & discover → build → verify → fix','Stress that the verification plan comes before the build, not after','Name the crucial constraint: compare against the spec, not your own implementation','Explain why comparing against your own code is a tautology that is always true','Note the loop closes within a single run — which is what makes it cheap and scalable']},
+{id:'f4',t:'Why maximum reasoning everywhere performs worse',
+ p:'Your manager says: "Compute is not the constraint — just turn everything to the highest setting."',
+ c:['Give the numbers: XHigh throughout 53.9, High throughout 63.6, sandwich 66.5','Explain the root cause is timeouts — reasoning burns 2x+ tokens and time','Point out benefit is unevenly distributed, concentrating in planning and verification','State the sandwich: XHigh plan / High implement / XHigh verify','Abstract the principle: under a binding constraint, stacked local optima degrade the global result']},
+{id:'f5',t:'How to run a trace-driven improvement loop',
+ p:'You want to adopt this method on your team. Describe the full loop, and how you would keep it from going off the rails.',
+ c:['Precondition: traces must be systematically stored and queryable — the LangSmith layer is not optional','The loop: fetch traces → parallel analysis agents → main agent synthesis → targeted change → human review','Explain the parallel/central split: classification parallelizes, root-cause synthesis needs a global view','Name the boosting analogy and the overfitting risk it carries','Give the hedges: human review, cross-task validation, suspicion of single-task specialization']},
+{id:'f6',t:'Can we port this harness to our model?',
+ p:'A colleague holds up the article and says: "Copy the config and our agent hits 66.5 too." Give your judgment.',
+ c:['Cite the fifth principle: different models need different prompting strategies','Give the number: Opus 4.6 scored 59.6% on the earlier harness — competitive but different','Separate what ports (the methodological loop) from what does not (the configuration)','Note that scores across different benchmarks are not directly comparable anyway','Give the practical path: build trace infrastructure first, then iterate on your own failure modes']}
+];
+
+var EXAM=[
+{tag:'m10',q:'Your agent runs at the highest reasoning mode throughout on a task with a timeout, and scores below the mid mode. The most reasonable adjustment is:',o:['Lower the reasoning mode for all stages','Allocate by stage: high on planning and verification, mid on implementation','Extend the timeout','Switch to a smaller model'],a:1,e:'The reasoning sandwich: 66.5% vs 63.6% High throughout vs 53.9% XHigh throughout.'},
+{tag:'m6',q:'Your agent keeps declaring completion without running tests. The most effective countermeasure is:',o:['Bold the words "MUST TEST" in the system prompt','Add middleware that intercepts before exit and forces a verification checklist','Raise the agent`s reasoning mode','Shorten the per-task time budget'],a:1,e:'Systematic optimism bias cannot be removed by asking for cooperation — only by taking part of the decision away.'},
+{tag:'m1',q:'What does "spiky intelligence" imply for harness design?',o:['Raise overall model capability','Design components that target specific capability troughs rather than applying general pressure','Reduce tool count to lower complexity','Prioritize token efficiency'],a:1,e:'A jagged distribution means precise targeting beats uniform pressure.'},
+{tag:'m5',q:'Your agent writes code, runs its own tests, all green — then the evaluation marks it failed. The most likely problem is:',o:['Test framework version mismatch','It verified against its own implementation rather than the spec, testing "is what I built what I built"','Insufficient reasoning mode','Missing time budget'],a:1,e:'Without anchoring to the spec, self-verification is a tautology.'},
+{tag:'m9',q:'An agent has edited the same file a dozen times without solving the problem. Per the article, you should:',o:['Hard-block further edits to that file','Count edits and inject a "consider reconsidering your approach" prompt past a threshold, overridable','Terminate the task','Switch to a higher reasoning mode'],a:1,e:'Whether to change approach is situational; a hard block would punish legitimate multi-edit cases.'},
+{tag:'m4',q:'You want to make "analyze failures and improve the harness" repeatable. Closest to the article`s design:',o:['One agent reads all traces sequentially and proposes changes','Spawn parallel analysis agents to classify, have a main agent synthesize root causes, then human review','Have the agent modify its own harness live during a run','Train task-specific models separately'],a:1,e:'Classification parallelizes; root-cause synthesis needs a global view.'},
+{tag:'m7',q:'Traces show the agent spending a dozen tool calls at the start probing the directory structure. The most economical fix is:',o:['Raise the reasoning mode to improve planning','Use startup middleware to inject the directory map and installed tool inventory','Give it a larger time budget','Reduce task complexity'],a:1,e:'A few bash commands versus a dozen wrong guesses — a cost argument, not a capability judgment.'},
+{tag:'m3',q:'Which best describes the difference between a system prompt and middleware?',o:['Middleware is just an implementation of prompting, with equivalent effect','Prompts are soft and ignorable; middleware executes deterministically at a fixed moment','Prompts suit complex logic, middleware only simple checks','Middleware substantially increases token cost'],a:1,e:'Convention versus gate — the compliance gap is the source of the gain.'},
+{tag:'m11',q:'An agent`s execution path is poor. Per the third principle, diagnosis should:',o:['Examine only whether the reasoning chain is sound','Debug tooling and reasoning together — bad paths often mean a missing tool or instruction','Upgrade the model before investigating','Increase the trace sampling rate'],a:1,e:'It is easy to misdiagnose "no tool available" as "cannot figure it out."'},
+{tag:'m2',q:'What is the significance of holding the model at GPT-5.2-Codex?',o:['It was the strongest model on this benchmark','It makes the harness the only variable, so the 13.7-point gain is attributable to the harness','It eases comparison with other teams','It reduces experiment cost'],a:1,e:'Without a controlled variable, a hill-climbing result cannot be attributed.'},
+{tag:'m8',q:'The agent`s logic is entirely correct but the evaluation scores it zero. Per the failure points named, the likely cause is:',o:['Insufficient reasoning mode','Artifact file paths do not match requirements, so the programmatic test cannot find them','Time budget exhausted','Missing edge-case handling'],a:1,e:'Correct implementation with the wrong delivery shape looks like a capability problem in a trace but is a convention problem.'},
+{tag:'m12',q:'What is the article`s position on continual learning for agents?',o:['Self-verification already achieves continual learning','Self-verification only covers within-run feedback; cross-run memory primitives remain an open problem','It requires retraining the model','The published trace dataset already solves it'],a:1,e:'Different time scales; cross-run accumulation is explicitly listed as unsolved.'},
+{tag:'m13',q:'You are setting the enforcement level for a new middleware. The deciding factor should be:',o:['How often that behavior goes wrong','Whether the model`s bias here is single-directional and stable — if so, hard block; if situational, soft nudge','Implementation complexity','Impact on latency'],a:1,e:'Exit judgments (single-direction) get hard blocks; approach judgments (situational) get soft nudges.'},
+{tag:'m11',q:'Your team wants to copy this harness configuration onto your own Claude model. A reasonable expectation is:',o:['You will get close to 66.5%','You need per-model iteration — Opus 4.6 scored 59.6% on the earlier harness; configuration does not port','It will not work at all; start from scratch','Only the middleware portion is reusable'],a:1,e:'What ports is the methodological loop, not the configuration.'},
+{tag:'m4',q:'Trace-driven improvement is compared to boosting. What risk does that analogy also flag?',o:['Compute cost grows exponentially per round','Overfitting to specific tasks, losing generalization and causing regressions','Trace data goes stale','It requires large amounts of labeled data'],a:1,e:'Which is why human review and cross-task validation are necessary hedges.'},
+{tag:'m5',q:'In "self-verification lets the agent self-improve," the improvement occurs:',o:['Across runs, requiring accumulation','Within a single run, as a feedback loop','With human intervention each round','Only in multi-agent architectures'],a:1,e:'Within a run — the key to it being cheap and scalable.'},
+{tag:'m10',q:'Why does the reasoning sandwich deliberately downshift the implementation stage?',o:['Code quality does not matter during implementation','Reasoning benefit concentrates in planning and verification; implementation gains little, so downshifting buys time budget for the ends','Higher modes introduce more bugs while implementing','To stay compatible with smaller models'],a:1,e:'Uneven benefit distribution justifies differentiated allocation.'},
+{tag:'m13',q:'The three middleware mount at which points?',o:['All on every tool call','Startup / every tool call / before exit','Startup / verification stage / before exit','Dynamically decided by the model'],a:1,e:'Covering the three moments a harness can deterministically intervene.'}
+];
+
+var CHEAT={
+ tree:[
+  ['Root cause is not knowing the environment?','→ startup middleware injecting directory map + tool inventory'],
+  ['Root cause is shipping without verifying?','→ hard block before exit (PreCompletionChecklist) + the four-stage method'],
+  ['Root cause is drilling the same dead end?','→ count per-file edits, soft nudge past a threshold'],
+  ['Root cause is timeouts?','→ differentiate reasoning modes: high on plan/verify, downshift implementation'],
+  ['Root cause is the wrong delivery shape?','→ state grading criteria up front + enforce file-path conventions'],
+  ['Root cause unknown?','→ build trace storage first, then run parallel analysis → synthesis → change → review']
+ ],
+ qa:[
+  ['What is the goal of harness engineering?','Shape the model`s spiky intelligence — engineer against specific capability troughs.'],
+  ['What is adjustable?','System prompt (soft), tools (capability ceiling), middleware (deterministic hooks).'],
+  ['When middleware over a prompt?','When the model`s bias is single-directional and stable — a prompt requests compliance, middleware does not.'],
+  ['Key constraints on self-verification?','Plan before building; compare against the spec, not your own code; the loop closes within a run.'],
+  ['How to set reasoning modes?','XHigh plan → High implement → XHigh verify. Maximum everywhere times out and scores worse.'],
+  ['How to find improvements systematically?','Traces → parallel analysis agents → main agent synthesis → targeted change → human review.'],
+  ['Main risk of the method?','Overfitting to specific tasks, losing generalization and causing regressions — boosting`s inherent cost.'],
+  ['Can I port this to another model?','No. Methodology ports, configuration does not — Opus 4.6 scored 59.6% on the same harness.'],
+  ['When should a guardrail be removed?','When the model trough it targets disappears — which is why components bind to defects.'],
+  ['What is still unsolved?','Cross-run memory primitives, multi-model systems, cross-family measurement of harness changes.']
+ ]
+};
+
+function mdb(s){return String(s).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function modQuizStat(m){
+  var tot=0,ok=0;
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i;
+    if(state.answers[k]!==undefined){tot++;if(state.answers[k]===q.a)ok++;}
+  });
+  return {tot:tot,ok:ok,total:m.quiz.length};
+}
+function modStatus(m){
+  var s=modQuizStat(m);
+  if(s.tot===0)return 'none';
+  return (s.ok/s.tot)>=0.7 && s.tot===s.total ? 'master' : 'review';
+}
+function statusIcon(st){
+  if(st==='master')return {c:'st-master',i:'●'};
+  if(st==='review')return {c:'st-review',i:'▲'};
+  return {c:'st-none',i:'○'};
+}
+function byId(id){for(var i=0;i<MODULES.length;i++)if(MODULES[i].id===id)return MODULES[i];return null;}
+
+var view='home';
+function renderNav(){
+  var h='<div class="navsec">Overview</div>';
+  h+='<div class="navitem'+(view==='home'?' active':'')+'" data-v="home" tabindex="0"><span class="ico">▤</span><span class="nvt">Learning map</span></div>';
+  h+='<div class="navsec">Modules</div>';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st);
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div class="navitem'+(view===m.id?' active':'')+'" data-v="'+m.id+'" tabindex="0">'+
+       '<span class="ico '+ic.c+'">'+ic.i+'</span>'+
+       '<span class="nvt"><span class="num">'+m.num+'</span> '+esc(m.title)+
+       (pend.length?'<span class="pend">prereq pending: '+pend.map(function(p){return byId(p).num;}).join(' · ')+'</span>':'')+
+       '</span></div>';
+  });
+  h+='<div class="navsec">Practice</div>';
+  h+='<div class="navitem'+(view==='fey'?' active':'')+'" data-v="fey" tabindex="0"><span class="ico">✎</span><span class="nvt">Feynman lab</span></div>';
+  h+='<div class="navitem'+(view==='exam'?' active':'')+'" data-v="exam" tabindex="0"><span class="ico">◆</span><span class="nvt">Final exam</span></div>';
+  h+='<div class="navitem'+(view==='cheat'?' active':'')+'" data-v="cheat" tabindex="0"><span class="ico">▦</span><span class="nvt">Cheatsheet</span></div>';
+  var nv=document.getElementById('nav');
+  nv.innerHTML=h;
+  nv.querySelectorAll('.navitem').forEach(function(el){
+    el.onclick=function(){go(el.getAttribute('data-v'));};
+    el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(el.getAttribute('data-v'));}};
+  });
+  var mastered=MODULES.filter(function(m){return modStatus(m)==='master';}).length;
+  var pct=Math.round(mastered/MODULES.length*100);
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='Mastery '+pct+'%';
+  document.getElementById('pcnt').textContent=mastered+'/'+MODULES.length;
+}
+
+function renderHome(){
+  var h='<div class="eyebrow">LangChain Engineering · Terminal Bench 2.0</div>';
+  h+='<h2 class="vt">Harness Engineering: a reproducible climb from 52.8 to 66.5</h2>';
+  h+='<p class="sub">The model is held at GPT-5.2-Codex. Only the harness changes. Net gain: 13.7 points. Work through these 13 modules and you can diagnose which knob an agent failure calls for.</p>';
+  h+='<div class="anchor-note"><strong>On the analogies:</strong> this page anchors them in a <strong>backend / infrastructure</strong> background (CI gates, circuit breakers and backoff, performance tuning, incident review). That anchor was chosen as a default in the absence of information about your background — say the word and it can be swapped wholesale.</div>';
+  h+='<div class="card"><span class="lbl">How to use this page</span>Work the sidebar in order. Each module ends in a quick check — answer every question at 70% or better and the module is marked mastered. Then use the Feynman lab to say it in your own words, and finish with the 18-question exam, which locates your weak modules and their unmastered prerequisites. Progress saves automatically.</div>';
+  h+='<div class="dg"><div class="row"><div class="bx">System prompt<small>soft</small></div><div class="bx">Tools<small>capability ceiling</small></div><div class="bx on">Middleware<small>deterministic hooks</small></div><span class="ar">→</span><div class="bx gd">+13.7</div></div>'+
+     '<div class="row" style="margin-top:14px"><div class="bx on" style="min-width:auto">startup<small>inject environment</small></div><span class="ar">→</span><div class="bx on" style="min-width:auto">tool call<small>detect loops</small></div><span class="ar">→</span><div class="bx on" style="min-width:auto">before exit<small>force verification</small></div></div>'+
+     '<div class="dg-cap">The mental model for the whole article: convert what you would ask the model to do voluntarily into something that happens deterministically at a moment it must pass through. The three middleware cover every intervenable moment in the agent lifecycle.</div></div>';
+  h+='<h3>Module map</h3><div class="grid">';
+  MODULES.forEach(function(m){
+    var st=modStatus(m),ic=statusIcon(st),s=modQuizStat(m);
+    h+='<div class="mcard" data-v="'+m.id+'" tabindex="0"><div class="mn">'+m.num+' · '+esc(m.eyebrow)+'</div><h4>'+esc(m.title)+'</h4><p>'+esc(m.sub)+'</p><div class="ft"><span>'+
+       (m.prereqs.length?m.prereqs.map(function(p){return '<span class="badge">'+byId(p).num+'</span>';}).join(''):'<span class="badge">foundational</span>')+
+       '</span><span class="'+ic.c+'">'+ic.i+' '+(s.tot?s.ok+'/'+s.tot:'not started')+'</span></div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function renderModule(m){
+  var h='<div class="eyebrow">'+m.num+' · '+esc(m.eyebrow)+'</div><h2 class="vt">'+esc(m.title)+'</h2><p class="sub">'+esc(m.sub)+'</p>';
+  if(m.prereqs.length){
+    var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+    h+='<div style="margin-bottom:20px">'+m.prereqs.map(function(p){return '<span class="badge">requires '+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join('')+
+       (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:6px">These prerequisites are not yet mastered — this module may read harder than it should.</div>':'')+'</div>';
+  }
+  m.intuition.forEach(function(p){h+='<p>'+mdb(p)+'</p>';});
+  h+='<div class="dg">'+m.diagram+'<div class="dg-cap">'+esc(m.diagcap)+'</div></div>';
+  h+='<div class="box-analogy"><span class="lbl">Analogy anchor · backend / infra</span>'+mdb(m.analogy)+'</div>';
+  h+='<div class="box-miss"><div class="mt">✗ Common misconception: '+esc(m.miss.t)+'</div><div class="ma">✓ Actually: '+esc(m.miss.a)+'</div></div>';
+  if(m.table){
+    h+='<div class="tblwrap"><table><thead><tr>'+m.table.h.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr></thead><tbody>'+
+       m.table.r.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+  }
+  h+='<div class="box-key"><span class="lbl">Key takeaways</span><ul>'+m.keys.map(function(k){return '<li>'+esc(k)+'</li>';}).join('')+'</ul></div>';
+  h+='<div class="hr"></div><h3>Quick check</h3><div id="quiz"></div>';
+  var idx=MODULES.indexOf(m);
+  h+='<div class="btnrow">';
+  if(idx>0)h+='<button class="btn ghost" data-go="'+MODULES[idx-1].id+'">← '+MODULES[idx-1].num+'</button>';
+  if(idx<MODULES.length-1)h+='<button class="btn" data-go="'+MODULES[idx+1].id+'">Next: module '+MODULES[idx+1].num+' →</button>';
+  else h+='<button class="btn" data-go="fey">Go to the Feynman lab →</button>';
+  h+='</div>';
+  return h;
+}
+
+function paintQuiz(m){
+  var box=document.getElementById('quiz');if(!box)return;
+  var h='';
+  m.quiz.forEach(function(q,i){
+    var k=m.id+'-'+i, ans=state.answers[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-k="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'Correct':'Not quite')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){
+      state.answers[b.getAttribute('data-k')]=parseInt(b.getAttribute('data-j'),10);
+      save();paintQuiz(m);renderNav();
+    };
+  });
+}
+
+function renderFey(){
+  var h='<div class="eyebrow">Feynman Lab</div><h2 class="vt">Feynman lab</h2><p class="sub">These six are the points that feel understood until you open your mouth — and the ones an interviewer follows up on. Write first, then open the checklist.</p>';
+  FEY.forEach(function(f){
+    var d=state.fey[f.id]||{txt:'',r:0};
+    h+='<div class="card"><h3 style="margin-top:0">'+esc(f.t)+'</h3><p style="color:var(--dim);font-size:13.5px">'+esc(f.p)+'</p>'+
+       '<textarea data-f="'+f.id+'" placeholder="In your own words. Do not recite the terminology…">'+esc(d.txt)+'</textarea>'+
+       '<details><summary>Open the checklist (write yours first)</summary><ul>'+f.c.map(function(c){return '<li>'+esc(c)+'</li>';}).join('')+'</ul></details>'+
+       '<div class="rate"><span>Self-rating:</span>'+[1,2,3,4,5].map(function(n){return '<button data-fr="'+f.id+'" data-n="'+n+'" class="'+(d.r===n?'sel':'')+'">'+n+'</button>';}).join('')+'<span>1 = cannot explain · 5 = could teach it</span></div></div>';
+  });
+  h+='<div class="btnrow"><button class="btn" data-go="exam">Go to the final exam →</button></div>';
+  return h;
+}
+function bindFey(){
+  document.querySelectorAll('textarea[data-f]').forEach(function(t){
+    t.oninput=function(){
+      var id=t.getAttribute('data-f');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].txt=t.value;save();
+    };
+  });
+  document.querySelectorAll('button[data-fr]').forEach(function(b){
+    b.onclick=function(){
+      var id=b.getAttribute('data-fr');
+      state.fey[id]=state.fey[id]||{txt:'',r:0};
+      state.fey[id].r=parseInt(b.getAttribute('data-n'),10);save();go('fey');
+    };
+  });
+}
+
+function renderExam(){
+  return '<div class="eyebrow">Final Exam</div><h2 class="vt">Final exam</h2><p class="sub">18 questions shuffled across modules, weighted toward diagnosis: given the symptom, name the knob. Answer them all and weak modules plus their prerequisites are located for you.</p><div id="exambox"></div>';
+}
+function paintExam(){
+  var box=document.getElementById('exambox');if(!box)return;
+  var h='';
+  EXAM.forEach(function(q,i){
+    var k='e'+i,ans=state.exam[k];
+    h+='<div class="q"><div class="qt">'+(i+1)+'. '+esc(q.q)+'</div>';
+    q.o.forEach(function(o,j){
+      var cls='opt';
+      if(ans!==undefined){cls+=' done';if(j===q.a)cls+=' ok';else if(j===ans)cls+=' no';}
+      h+='<button class="'+cls+'" data-ek="'+k+'" data-j="'+j+'"'+(ans!==undefined?' disabled':'')+'>'+esc(o)+'</button>';
+    });
+    if(ans!==undefined)h+='<div class="expl"><b class="'+(ans===q.a?'ok':'no')+'">'+(ans===q.a?'Correct':'Not quite')+'</b> — '+esc(q.e)+'</div>';
+    h+='</div>';
+  });
+  var done=EXAM.filter(function(q,i){return state.exam['e'+i]!==undefined;}).length;
+  if(done===EXAM.length){
+    var ok=EXAM.filter(function(q,i){return state.exam['e'+i]===q.a;}).length;
+    var pct=Math.round(ok/EXAM.length*100);
+    var verdict=pct>=90?'Solid — you could go teach this.':pct>=75?'The spine is there; the gaps are listed below.':pct>=55?'Framework held, but the mechanisms and numbers need another pass.':'Work back through in prerequisite order before retrying.';
+    var weakIds=[];
+    EXAM.forEach(function(q,i){if(state.exam['e'+i]!==q.a&&weakIds.indexOf(q.tag)<0)weakIds.push(q.tag);});
+    var wh='';
+    weakIds.forEach(function(id){
+      var m=byId(id);
+      var pend=m.prereqs.filter(function(p){return modStatus(byId(p))!=='master';});
+      wh+='<div style="margin-bottom:10px"><span class="wl" data-go="'+m.id+'" tabindex="0">'+m.num+' '+esc(m.title)+'</span>'+
+          (pend.length?'<div style="font-size:12px;color:var(--warn);margin-top:3px">Start with '+pend.map(function(p){return '<span class="wl" data-go="'+p+'" tabindex="0">'+byId(p).num+' '+esc(byId(p).title)+'</span>';}).join(', ')+' — a prerequisite of this module that your quick check has not cleared.</div>':'')+
+          '</div>';
+    });
+    h='<div class="card"><span class="lbl">Result</span><div class="score">'+pct+'%</div><div style="color:var(--dim)"><span class="num">'+ok+' / '+EXAM.length+'</span> correct · '+verdict+'</div>'+
+      (weakIds.length?'<div class="weak"><span class="lbl">Worth revisiting</span>'+wh+'</div>':'<div class="weak" style="color:var(--good)">All correct — no weak modules.</div>')+
+      '<div class="btnrow"><button class="btn ghost" id="reexam">Clear and retry</button><button class="btn" data-go="cheat">Go to the cheatsheet →</button></div></div>'+h;
+  }else{
+    h='<div class="card" style="color:var(--dim)">Answered <span class="num">'+done+'/'+EXAM.length+'</span> — the score and weak-module breakdown appear once all are done.</div>'+h;
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('.opt:not(.done)').forEach(function(b){
+    b.onclick=function(){state.exam[b.getAttribute('data-ek')]=parseInt(b.getAttribute('data-j'),10);save();paintExam();};
+  });
+  var re=document.getElementById('reexam');
+  if(re)re.onclick=function(){state.exam={};save();paintExam();};
+  box.querySelectorAll('[data-go]').forEach(function(el){el.onclick=function(){go(el.getAttribute('data-go'));};});
+}
+
+function renderCheat(){
+  var h='<div class="eyebrow">Cheatsheet</div><h2 class="vt">Cheatsheet</h2><p class="sub">No explanation, pure density. Go from symptom to the knob that fixes it.</p>';
+  h+='<h3>From symptom to fix</h3><div class="dg">';
+  CHEAT.tree.forEach(function(r){h+='<div class="row" style="margin-bottom:9px"><div class="bx" style="min-width:250px;text-align:left">'+esc(r[0])+'</div><span class="ar">→</span><div style="font-size:13px">'+esc(r[1])+'</div></div>';});
+  h+='</div>';
+  h+='<h3>The three middleware</h3><div class="tblwrap"><table><thead><tr><th>Component</th><th>Timing</th><th>Enforcement</th><th>Trough targeted</th></tr></thead><tbody>'+
+   '<tr><td>LocalContext</td><td>Startup</td><td>Inject facts</td><td>Not knowing the environment</td></tr>'+
+   '<tr><td>LoopDetection</td><td>Every tool call</td><td>Soft nudge (overridable)</td><td>Stuck in a doom loop</td></tr>'+
+   '<tr><td>PreCompletionChecklist</td><td>Before exit</td><td>Hard block</td><td>Systematic optimism</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>Reasoning mode allocation</h3><div class="tblwrap"><table><thead><tr><th>Strategy</th><th>Plan</th><th>Implement</th><th>Verify</th><th>Score</th></tr></thead><tbody>'+
+   '<tr><td>XHigh throughout</td><td>XHigh</td><td>XHigh</td><td>XHigh</td><td class="n">53.9 (timeouts)</td></tr>'+
+   '<tr><td>High throughout</td><td>High</td><td>High</td><td>High</td><td class="n">63.6</td></tr>'+
+   '<tr><td><strong>Reasoning sandwich</strong></td><td>XHigh</td><td>High</td><td>XHigh</td><td class="n"><strong>66.5</strong></td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>Numbers worth memorizing</h3><div class="tblwrap"><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>'+
+   '<tr><td>Baseline → final</td><td class="n">52.8 → 66.5 (+13.7)</td></tr>'+
+   '<tr><td>Terminal Bench 2.0</td><td class="n">89 tasks · ML / debugging / biology</td></tr>'+
+   '<tr><td>XHigh / High / sandwich</td><td class="n">53.9 / 63.6 / 66.5</td></tr>'+
+   '<tr><td>Opus 4.6 (earlier harness)</td><td class="n">59.6</td></tr>'+
+   '<tr><td>Cost of high reasoning</td><td class="n">2x+ tokens and time</td></tr>'+
+   '<tr><td>Doom loop threshold</td><td class="n">10+ iterations, one approach</td></tr>'+
+   '</tbody></table></div>';
+  h+='<h3>Likely follow-ups and how to answer</h3><div class="tblwrap"><table><thead><tr><th>Question</th><th>Angle</th></tr></thead><tbody>'+
+   CHEAT.qa.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>';}).join('')+'</tbody></table></div>';
+  return h;
+}
+
+function go(v){
+  view=v;
+  var main=document.getElementById('main');
+  if(v==='home')main.innerHTML=renderHome();
+  else if(v==='fey'){main.innerHTML=renderFey();bindFey();}
+  else if(v==='exam'){main.innerHTML=renderExam();paintExam();}
+  else if(v==='cheat')main.innerHTML=renderCheat();
+  else{var m=byId(v);main.innerHTML=renderModule(m);paintQuiz(m);}
+  main.querySelectorAll('[data-v],[data-go]').forEach(function(el){
+    if(el.closest('#exambox'))return;
+    var t=el.getAttribute('data-v')||el.getAttribute('data-go');
+    el.onclick=function(){go(t);};
+    el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(t);}};
+  });
+  renderNav();
+  window.scrollTo(0,0);
+}
+
+detect();
+Promise.resolve(load()).then(function(){
+  if(backend==='memory')document.getElementById('storenote').textContent='⚠ No durable storage available here — progress lasts for this session only.';
+  go('home');
+});
+</script>
+</body></html>
